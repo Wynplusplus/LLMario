@@ -1,0 +1,41 @@
+You are independently verifying a matching disassembly of Super Mario Bros.
+(World) for the NES. Be skeptical: do not trust any summary or README claim,
+including this message. Verify from the raw bytes yourself.
+
+Working directory: /home/wyn/smb_decomp
+
+Artifacts:
+- out/original.nes  : the original 40976-byte iNES ROM
+- out/prg.bin       : the 32768-byte PRG ROM (CPU $8000-$FFFF)
+- out/smb.asm       : the generated ca65 disassembly (instructions + .byte data)
+- out/ghidra_map.txt: Ghidra's instruction/data map
+- build.sh          : assembles out/smb.asm with ca65/ld65 and runs cmp
+- gen.py            : the generator that produced out/smb.asm
+
+Your job: decide whether out/smb.asm is an INSTRUCTION MATCH, defined as:
+1. It reassembles byte-for-byte to out/prg.bin (run ./build.sh).
+2. Every emitted 6502 instruction matches the ROM at its address: the mnemonic
+   and addressing mode must correspond exactly to the opcode byte(s) at that
+   address in out/prg.bin, and the "; $ADDR: .." comment bytes shown on each
+   line must equal the ROM bytes at that address.
+3. Every one of the 32768 PRG bytes is accounted for exactly once by the
+   instructions plus the .byte data lines (no gaps, no overlaps).
+
+Method hints (do not limit yourself to these):
+- ca65/ld65 are available; build.sh vendors them under ./cc65/usr/bin.
+- You can write a Python script that parses out/smb.asm, re-reads out/prg.bin,
+  re-encodes each instruction from its mnemonic+operand, and compares. Use a
+  full 6502 opcode table. Pay attention to forced sizes (z: vs a:) and to
+  relative branches (labels Lxxxx).
+- Check the instruction count, code-byte total, and data-byte total; they must
+  sum to 32768.
+
+Expected values (verify, don't assume):
+- sha256(out/prg.bin)         = 5374abb64cfb9b5d961856c60166cedc55859164cf2b8867730e144fa2bdd594
+- sha256(out/original.nes)    = 0b3d9e1f01ed1668205bab34d6c82b0e281456e137352e4f36a9b2cfa3b66dea
+
+Report clearly:
+- Verdict: MATCH or MISMATCH.
+- The exact commands you ran and their key output (counts, cmp result, hashes).
+- If MISMATCH: the specific addresses/instructions that differ and a concrete
+  plan to fix gen.py so the result matches.

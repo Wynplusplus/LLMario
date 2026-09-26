@@ -1,0 +1,26 @@
+# Extracted ROM data (supplied by the user; never committed)
+out/*.bin
+out/*.nes
+out/*.sha256
+out/prg_rebuilt.bin
+out/smb_rebuilt.nes
+out/*.o
+
+# C build outputs
+c/out/*.o
+c/out/*.a
+c/out/difftest
+c/out/*.err
+
+# Vendored tools (see README for how to obtain them)
+cc65/
+c/cc65/
+tools/
+zig/
+
+# Python
+__pycache__/
+*.pyc
+
+# Ghidra project database
+ghidra/proj.*

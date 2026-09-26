@@ -1,0 +1,35 @@
+You previously found that the decompiled C was missing alternate instruction
+entry points (the `BIT abs` operand-as-entry idiom) and that the differential
+test could not detect translation gaps. Those fixes have been applied:
+
+- gen_c.py now expands the code map with all static control-flow targets
+  (JSR/JMP/branch operands and fall-through/return sites) until a fixpoint,
+  decoding overlapping streams from prg.bin. 65 entry points were added
+  (translated set is now 10320).
+- difftest.c now: (Phase 1b) asserts every translated address has a function;
+  (Phase 0) runs traces from the RESET/NMI/IRQ vectors; and detects a GAP when
+  execution reaches a static control-flow target that is a valid instruction but
+  has no C function.
+
+Please re-verify, adversarially, from the raw artifacts. Do not trust this
+message or README.md.
+
+Re-check in particular:
+1. The previously missing addresses $8223, $C902, $C905, $BFB7, $DC21 each now
+   have a C function and dispatch entry, and decode to the correct instruction.
+2. Hunt for any REMAINING reachable-but-untranslated instruction entry point.
+   Use an independent method (e.g. your own recursive traversal, or cc65 da65
+   streams) to enumerate control-flow targets and check each has an optab entry.
+   Note: addresses holding an illegal/undefined opcode are data and need not be
+   translated; report a gap only for valid 6502 instructions that a static
+   branch/JSR/JMP can reach.
+3. The differential test now passes with 0 gaps (run ./build_c.sh). Confirm the
+   gap detection is meaningful (would catch a deliberately removed function):
+   you may test this by copying the sources and deleting one translated
+   function's optab entry, or by other means.
+4. Re-confirm instruction semantics and the reference interpreter's correctness
+   (flags, addressing, JMP indirect page bug, BRK/RTS/RTI, stack), as before.
+5. Confirm x86-64 and aarch64 builds still succeed.
+
+Report PASS/FAIL, exact commands and key output, any counterexample, and if
+FAIL precise instructions to fix gen_c.py and/or difftest.c/ref6502.c.

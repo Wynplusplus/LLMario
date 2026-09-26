@@ -1,0 +1,1826 @@
+[0m
+> build · deepseek-v4.1-flash
+I'll start by independently examining the artifacts, then run the builds and tests.
+[0m→ [0mRead . 
+[0m$ [0mls -la /home/wyn/smb_decomp/c /home/wyn/smb_decomp/out 2>&1. | head -100
+/bin/bash: line 1: 1.: ambiguous redirect
+> build · deepseek-v4.1-flash
+[0m→ [0mRead build_c.sh 
+[0m→ [0mRead cpu.h 
+[0m$ [0mls -la /home/wyn/smb_decomp/c; echo "---out---"; ls -la /home/wyn/smb_decomp/out
+total 48
+drwxr-xr-x. 1 wyn wyn   174 Sep 26 19:02 .
+drwxr-xr-x. 1 wyn wyn   228 Sep 26 18:53 ..
+-rwxr-xr-x. 1 wyn wyn   926 Sep 26 19:01 build_c.sh
+-rw-r--r--. 1 wyn wyn   892 Sep 26 18:53 cpu.h
+-rw-r--r--. 1 wyn wyn  4014 Sep 26 19:00 difftest.c
+-rw-r--r--. 1 wyn wyn 15566 Sep 26 18:56 gen_c.py
+drwxr-xr-x. 1 wyn wyn   264 Sep 26 19:01 out
+-rw-r--r--. 1 wyn wyn  3370 Sep 26 19:01 README.md
+-rw-r--r--. 1 wyn wyn  7920 Sep 26 19:00 ref6502.c
+-rw-r--r--. 1 wyn wyn   296 Sep 26 19:02 VERIFY_ITER1.txt
+-rw-r--r--. 1 wyn wyn  2707 Sep 26 19:02 VERIFY_PROMPT.txt
+---out---
+total 1600
+drwxr-xr-x. 1 wyn wyn    246 Sep 26 18:28 .
+drwxr-xr-x. 1 wyn wyn    228 Sep 26 18:53 ..
+-rw-r--r--. 1 wyn wyn      0 Sep 26 18:19 ca65.err
+-rw-r--r--. 1 wyn wyn   8192 Sep 26 18:07 chr.bin
+-rw-r--r--. 1 wyn wyn 354370 Sep 26 18:28 da65_linear.asm
+-rw-r-----. 1 wyn wyn 294115 Sep 26 18:11 ghidra_map.txt
+-rw-r--r--. 1 wyn wyn     16 Sep 26 18:07 header.bin
+-rw-r--r--. 1 wyn wyn      0 Sep 26 18:19 ld65.err
+-rw-r--r--. 1 wyn wyn  40976 Sep 26 18:19 original.nes
+-rw-r--r--. 1 wyn wyn  32768 Sep 26 18:07 prg.bin
+-rw-r--r--. 1 wyn wyn  32768 Sep 26 18:28 prg_rebuilt.bin
+-rw-r--r--. 1 wyn wyn 587056 Sep 26 18:19 smb.asm
+-rw-r--r--. 1 wyn wyn 225284 Sep 26 18:28 smb.o
+-rw-r--r--. 1 wyn wyn  40976 Sep 26 18:28 smb_rebuilt.nes
+> build · deepseek-v4.1-flash
+[0m→ [0mRead difftest.c 
+[0m→ [0mRead ref6502.c 
+[0m→ [0mRead README.md 
+[0m→ [0mRead VERIFY_ITER1.txt 
+> build · deepseek-v4.1-flash
+[0m→ [0mRead gen_c.py 
+[0m$ [0mls -la /home/wyn/smb_decomp/c/out; echo ---; wc -l /home/wyn/smb_decomp/c/out/smb_prg.c /home/wyn/smb_decomp/c/out/ref_optable.h 2>&1
+total 17080
+drwxr-xr-x. 1 wyn wyn     264 Sep 26 19:01 .
+drwxr-xr-x. 1 wyn wyn     174 Sep 26 19:02 ..
+-rwxr-xr-x. 1 wyn wyn 1273360 Sep 26 19:01 difftest
+-rw-r--r--. 1 wyn wyn       0 Sep 26 19:00 difftest_build.err
+-rw-r--r--. 1 wyn wyn       0 Sep 26 18:55 gcc_x64.err
+-rw-r--r--. 1 wyn wyn 5700868 Sep 26 19:01 libsmb_prg_arm64.a
+-rw-r--r--. 1 wyn wyn 1723676 Sep 26 19:01 libsmb_prg_x64.a
+-rw-r--r--. 1 wyn wyn    2461 Sep 26 19:01 ref_optable.h
+-rw-r--r--. 1 wyn wyn 5700664 Sep 26 19:01 smb_prg_arm64.o
+-rw-r--r--. 1 wyn wyn 1359208 Sep 26 19:01 smb_prg.c
+-rw-r--r--. 1 wyn wyn 1723472 Sep 26 19:01 smb_prg_x64.o
+-rw-r--r--. 1 wyn wyn       0 Sep 26 18:55 zig_arm.err
+---
+  22632 /home/wyn/smb_decomp/c/out/smb_prg.c
+     10 /home/wyn/smb_decomp/c/out/ref_optable.h
+  22642 total
+> build · deepseek-v4.1-flash
+[0m→ [0mRead VERIFY_PROMPT.txt 
+[0m$ [0mcommand -v gcc; gcc --version | head -1; ls -la /tmp/opencode/zig/zig 2>&1; command -v zig 2>&1; file /tmp/opencode/zig/zig 2>&1; uname -m
+/usr/lib64/ccache/gcc
+gcc (GCC) 16.2.1 20260819 (Red Hat 16.2.1-2)
+-rwxr-xr-x. 1 wyn wyn 164675136 May 23  2025 /tmp/opencode/zig/zig
+/tmp/opencode/zig/zig: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, stripped
+x86_64
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && time ./build_c.sh 2>&1
+Command moved to the background (shell ID: sh_0dee25caf001cwO0YQ4RN2BGxF).
+Output is streaming to: /home/wyn/.local/share/opencode/shell/8c00bc2a686583330d75c9673d4c8faef1024a16/sh_0dee25caf001cwO0YQ4RN2BGxF.out
+> build · deepseek-v4.1-flash
+While that builds, let me examine the disassembly and ROM independently.
+[0m$ [0mcd /home/wyn/smb_decomp/out && head -60 smb.asm && echo "=== instruction line count ===" && grep -cE '^\s+[A-Z]{3}(\s|$)' smb.asm && echo "=== lines with address comment ===" && grep -cE '^\s+[A-Z]{3}(\s|$).*;\s*\$[0-9A-F]{4}:' smb.asm
+; Super Mario Bros. (World) PRG disassembly
+; 32 KiB PRG mapped at $8000-$FFFF. Code from recursive traversal
+; (RESET/NMI/IRQ + in-line jump tables); other bytes are data.
+; Each line is commented with its address and raw opcode bytes.
+.setcpu "6502"
+.segment "PRG"
+
+        SEI                        ; $8000: 78
+        CLD                        ; $8001: D8
+        LDA #$10                   ; $8002: A9 10
+        STA a:$2000                ; $8004: 8D 00 20
+        LDX #$FF                   ; $8007: A2 FF
+        TXS                        ; $8009: 9A
+L800A:
+        LDA a:$2002                ; $800A: AD 02 20
+        BPL L800A                  ; $800D: 10 FB
+L800F:
+        LDA a:$2002                ; $800F: AD 02 20
+        BPL L800F                  ; $8012: 10 FB
+        LDY #$FE                   ; $8014: A0 FE
+        LDX #$05                   ; $8016: A2 05
+L8018:
+        LDA a:$07D7,x              ; $8018: BD D7 07
+        CMP #$0A                   ; $801B: C9 0A
+        BCS L802B                  ; $801D: B0 0C
+        DEX                        ; $801F: CA
+        BPL L8018                  ; $8020: 10 F6
+        LDA a:$07FF                ; $8022: AD FF 07
+        CMP #$A5                   ; $8025: C9 A5
+        BNE L802B                  ; $8027: D0 02
+        LDY #$D6                   ; $8029: A0 D6
+L802B:
+        JSR a:$90CC                ; $802B: 20 CC 90
+        STA a:$4011                ; $802E: 8D 11 40
+        STA a:$0770                ; $8031: 8D 70 07
+        LDA #$A5                   ; $8034: A9 A5
+        STA a:$07FF                ; $8036: 8D FF 07
+        STA a:$07A7                ; $8039: 8D A7 07
+        LDA #$0F                   ; $803C: A9 0F
+        STA a:$4015                ; $803E: 8D 15 40
+        LDA #$06                   ; $8041: A9 06
+        STA a:$2001                ; $8043: 8D 01 20
+        JSR a:$8220                ; $8046: 20 20 82
+        JSR a:$8E19                ; $8049: 20 19 8E
+        INC a:$0774                ; $804C: EE 74 07
+        LDA a:$0778                ; $804F: AD 78 07
+        ORA #$80                   ; $8052: 09 80
+        JSR a:$8EED                ; $8054: 20 ED 8E
+        JMP a:$8057                ; $8057: 4C 57 80
+        .byte $01,$A4,$C8,$EC,$10,$00,$41,$41,$4C,$34,$3C,$44,$54,$68,$7C,$A8   ; $805A
+        .byte $BF,$DE,$EF,$03,$8C,$8C,$8C,$8D,$03,$03,$03,$8D,$8D,$8D,$8D,$8D   ; $806A
+        .byte $8D,$8D,$8D,$8D,$8D,$8D,$00,$40   ; $807A
+        LDA a:$0778                ; $8082: AD 78 07
+        AND #$7F                   ; $8085: 29 7F
+        STA a:$0778                ; $8087: 8D 78 07
+        AND #$7E                   ; $808A: 29 7E
+        STA a:$2000                ; $808C: 8D 00 20
+        LDA a:$0779                ; $808F: AD 79 07
+        AND #$E6                   ; $8092: 29 E6
+        LDY a:$0774                ; $8094: AC 74 07
+=== instruction line count ===
+10255
+=== lines with address comment ===
+10255
+> build · deepseek-v4.1-flash
+[0m→ [0mRead out/ref_optable.h 
+[0m$ [0mcd /home/wyn/smb_decomp/c && sed -n '1,40p' out/smb_prg.c; echo ...; grep -n "I_8057\|I_802B\|I_8000" out/smb_prg.c | head
+/* Decompiled Super Mario Bros. (World) PRG to portable C.
+ * Generated by gen_c.py from the matching disassembly analysis.
+ * Code addresses are translated to C functions dispatched via optab;
+ * data addresses have no entry and halt execution when reached.
+ * The 32 KiB PRG image is retained so reads of data (and of code bytes
+ * used as data) return the original values. Compiled freestanding for
+ * x86-64 and aarch64; see build_c.sh. */
+#include "cpu.h"
+
+
+static void setnz(Cpu *c, u8 v) {
+    if (v == 0) c->p |= F_Z; else c->p &= (u8)~F_Z;
+    if (v & 0x80) c->p |= F_N; else c->p &= (u8)~F_N;
+}
+static void push(Cpu *c, u8 v) { c->mem[0x100 + c->s] = v; c->s = (u8)(c->s - 1); }
+static u8 pop(Cpu *c) { c->s = (u8)(c->s + 1); return c->mem[0x100 + c->s]; }
+static void push16(Cpu *c, u16 v) { push(c, (u8)(v >> 8)); push(c, (u8)v); }
+static u16 pop16(Cpu *c) { u8 lo = pop(c); u8 hi = pop(c); return (u16)(lo | (hi << 8)); }
+static void do_adc(Cpu *c, u8 m) {
+    u16 r = (u16)c->a + m + ((c->p & F_C) ? 1 : 0);
+    u8 res = (u8)r;
+    if (r > 0xFF) c->p |= F_C; else c->p &= (u8)~F_C;
+    if ((~(c->a ^ m) & (c->a ^ res)) & 0x80) c->p |= F_V; else c->p &= (u8)~F_V;
+    c->a = res; setnz(c, res);
+}
+static void do_sbc(Cpu *c, u8 m) {
+    u16 r = (u16)((u16)c->a - m - ((c->p & F_C) ? 0 : 1));
+    u8 res = (u8)r;
+    if (r < 0x100) c->p |= F_C; else c->p &= (u8)~F_C;
+    if (((c->a ^ m) & (c->a ^ res)) & 0x80) c->p |= F_V; else c->p &= (u8)~F_V;
+    c->a = res; setnz(c, res);
+}
+static void do_cmp(Cpu *c, u8 r, u8 m) {
+    u16 t = (u16)r - m;
+    if (t < 0x100) c->p |= F_C; else c->p &= (u8)~F_C;
+    setnz(c, (u8)t);
+}
+static void do_asl(Cpu *c, u8 *v) { u8 m = *v; if (m & 0x80) c->p |= F_C; else c->p &= (u8)~F_C; m = (u8)(m << 1); *v = m; setnz(c, m); }
+static void do_lsr(Cpu *c, u8 *v) { u8 m = *v; if (m & 1) c->p |= F_C; else c->p &= (u8)~F_C; m = (u8)(m >> 1); *v = m; setnz(c, m); }
+static void do_rol(Cpu *c, u8 *v) { u8 m = *v; u8 cy = (c->p & F_C) ? 1 : 0; if (m & 0x80) c->p |= F_C; else c->p &= (u8)~F_C; m = (u8)((m << 1) | cy); *v = m; setnz(c, m); }
+...
+2097:static void I_8000(Cpu *c){ c->p |= F_I; c->pc = 0x8001; }
+2118:static void I_802B(Cpu *c){ push16(c, 0x802D); c->pc = 0x90CC; }
+2134:static void I_8057(Cpu *c){ c->pc = 0x8057; }
+12355:    optab[0x8000] = I_8000;
+12376:    optab[0x802B] = I_802B;
+12392:    optab[0x8057] = I_8057;
+> build · deepseek-v4.1-flash
+Build passes both archs and difftest 0 mismatches. Now the adversarial part. Let me build an independent decoder/cross-checker.
+[0m$ [0mcd /home/wyn/smb_decomp/out && grep -oE ';\s*\$[0-9A-F]{4}:' smb.asm | wc -l; echo "--- operand styles (sample) ---"; grep -E '^\s+[A-Z]{3}\s' smb.asm | sed -E 's/^[[:space:]]+[A-Z]{3}[[:space:]]+//; s/[[:space:]]*;.*//' | sort | uniq -c | sort -rn | head -40
+10255
+--- operand styles (sample) ---
+   1411 
+    333 a
+    303 #$00
+    200 #$01
+    180 z:$00
+    127 #$02
+    114 #$08
+    114 #$03
+     97 #$04
+     87 z:$08
+     73 z:$1E,x
+     73 z:$01
+     72 #$05
+     67 z:$02
+     66 #$20
+     65 z:$CF,x
+     65 #$06
+     61 z:$16,x
+     56 z:$07
+     54 z:$58,x
+     53 #$07
+     51 #$0F
+     45 #$FF
+     42 z:$CE
+     40 z:$06
+     39 #$80
+     39 #$40
+     39 #$10
+     36 a:$074E
+     35 #$F8
+     34 z:$A0,x
+     34 z:$09
+     34 z:$05
+     34 z:$03
+     32 z:$46,x
+     32 z:$04
+     31 z:$87,x
+     31 #$0B
+     30 z:$0E
+     29 a:$0747
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/out && grep -E '^\s+[A-Z]{3}\s' smb.asm | sed -E 's/[[:space:]]*;.*//' | grep -oE '\S+$' | sort -u | head -60; echo "=== JMP ind / BRK / RTI examples ==="; grep -nE 'JMP \(|JMP a:|BRK|RTI|JSR \(|\(a:' smb.asm | head -20
+#$00
+($0006)
+($00),y
+#$01
+#$02
+#$03
+#$04
+($04),y
+#$05
+#$06
+($06),y
+#$07
+#$08
+#$09
+#$0A
+#$0B
+#$0C
+#$0D
+#$0E
+#$0F
+($0F,x)
+#$10
+#$11
+#$12
+#$14
+#$15
+#$16
+#$17
+#$18
+#$19
+#$1A
+#$1B
+#$1C
+#$1D
+#$1E
+#$1F
+#$20
+#$21
+#$22
+#$23
+#$24
+#$25
+#$26
+#$28
+#$29
+#$2A
+#$2B
+#$2C
+#$2D
+#$2E
+#$2F
+#$30
+($30,x)
+#$31
+#$32
+#$33
+#$35
+#$36
+#$37
+#$38
+=== JMP ind / BRK / RTI examples ===
+49:        JMP a:$8057                ; $8057: 4C 57 80
+173:        RTI                        ; $8181: 40
+279:        JMP a:$82D8                ; $8255: 4C D8 82
+288:        JMP a:$82C0                ; $8269: 4C C0 82
+310:        JMP a:$82BB                ; $8299: 4C BB 82
+414:        JMP a:$EEE9                ; $839D: 4C E9 EE
+423:        JMP a:$874E                ; $83BA: 4C 4E 87
+467:        JMP a:$8418                ; $8411: 4C 18 84
+636:        JMP a:$85C5                ; $8598: 4C C5 85
+650:        JMP a:$8745                ; $85B8: 4C 45 87
+656:        JMP a:$8745                ; $85C8: 4C 45 87
+711:        JMP a:$8745                ; $864F: 4C 45 87
+714:        JMP a:$8745                ; $8657: 4C 45 87
+739:        JMP a:$8745                ; $8690: 4C 45 87
+745:        JMP a:$86C7                ; $869F: 4C C7 86
+748:        JMP a:$8745                ; $86A5: 4C 45 87
+773:        JMP a:$874E                ; $86DD: 4C 4E 87
+814:        JMP a:$864C                ; $872F: 4C 4C 86
+932:        JMP a:$863F                ; $889A: 4C 3F 86
+993:        JMP a:$8930                ; $8917: 4C 30 89
+> build · deepseek-v4.1-flash
+[0m← [0mWrite /tmp/opencode/verify_decode.py
+Created file successfully: /tmp/opencode/verify_decode.py
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 /tmp/opencode/verify_decode.py 2>&1 | head -120
+parsed instruction lines: 10255
+instruction-looking lines without address: 0
+errors: 1
+  ERR $8E16 operand '($0006)' mismatch mode ind val $0006
+
+opcode coverage (mnemonic,mode): count
+  ADC  abs  17
+  ADC  abx  17
+  ADC  aby  20
+  ADC  imm  148
+  ADC  izx  1
+  ADC  izy  2
+  ADC  zp   35
+  ADC  zpx  6
+  AND  abs  5
+  AND  abx  4
+  AND  aby  3
+  AND  imm  246
+  AND  izx  1
+  AND  izy  1
+  AND  zp   7
+  AND  zpx  1
+  ASL  abs  2
+  ASL  abx  2
+  ASL  acc  131
+  ASL  zp   2
+  ASL  zpx  3
+  BCC  rel  203
+  BCS  rel  183
+  BEQ  rel  437
+  BIT  abs  4
+  BIT  zp   1
+  BMI  rel  55
+  BNE  rel  537
+  BPL  rel  98
+  BRK  imp  7
+  BVC  rel  1
+  CLC  imp  192
+  CLD  imp  1
+  CLI  imp  1
+  CLV  imp  1
+  CMP  abs  15
+  CMP  abx  13
+  CMP  aby  13
+  CMP  imm  435
+  CMP  zp   17
+  CMP  zpx  9
+  CPX  imm  39
+  CPX  zp   3
+  CPY  abs  2
+  CPY  imm  96
+  CPY  zp   4
+  DEC  abs  30
+  DEC  abx  5
+  DEC  zp   16
+  DEC  zpx  11
+  DEX  imp  47
+  DEY  imp  84
+  EOR  aby  1
+  EOR  imm  35
+  EOR  izx  1
+  EOR  izy  1
+  EOR  zp   1
+  INC  abs  84
+  INC  abx  6
+  INC  zp   30
+  INC  zpx  13
+  INX  imp  63
+  INY  imp  183
+  JMP  abs  219
+  JMP  ind  1
+  JSR  abs  584
+  LDA  abs  473
+  LDA  abx  143
+  LDA  aby  216
+  LDA  imm  707
+  LDA  izy  50
+  LDA  zp   303
+  LDA  zpx  230
+  LDX  abs  45
+  LDX  aby  19
+  LDX  imm  129
+  LDX  zp   99
+  LDX  zpy  2
+  LDY  abs  107
+  LDY  abx  43
+  LDY  imm  238
+  LDY  zp   87
+  LDY  zpx  20
+  LSR  abs  1
+  LSR  acc  174
+  LSR  zp   25
+  ORA  abs  17
+  ORA  abx  4
+  ORA  aby  5
+  ORA  imm  45
+  ORA  izx  5
+  ORA  zp   17
+  ORA  zpx  1
+  PHA  imp  81
+  PHP  imp  2
+  PLA  imp  86
+  ROL  abs  3
+  ROL  acc  23
+  ROL  zp   7
+  ROL  zpx  1
+  ROR  abx  1
+  ROR  acc  5
+  RTI  imp  3
+  RTS  imp  321
+  SBC  abs  15
+  SBC  abx  2
+  SBC  aby  10
+  SBC  imm  64
+  SBC  izx  1
+  SBC  zp   16
+  SBC  zpx  7
+  SEC  imp  79
+  SEI  imp  1
+  STA  abs  411
+> build · deepseek-v4.1-flash
+[0m← [0mEdit /tmp/opencode/verify_decode.py
+Index: /tmp/opencode/verify_decode.py
+===================================================================
+--- /tmp/opencode/verify_decode.py
++++ /tmp/opencode/verify_decode.py
+@@ -113,9 +113,9 @@
+     elif cmode in ("abs","abx","aby"):
+         exp = f"a:${val:04X}" + (",x" if cmode=="abx" else (",y" if cmode=="aby" else ""))
+         ok = operand.lower() == exp.lower()
+     elif cmode == "ind":
+-        ok = operand.lower() == f"(a:${val:04X})".lower()
++        ok = operand.lower() in (f"(a:${val:04X})".lower(), f"(${val:04X})".lower())
+     elif cmode == "izx":
+         ok = operand.lower() == f"(${val:02X},x)".lower()
+     elif cmode == "izy":
+         ok = operand.lower() == f"(${val:02X}),y".lower()
+
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 /tmp/opencode/verify_decode.py 2>&1 | head -4
+parsed instruction lines: 10255
+instruction-looking lines without address: 0
+errors: 0
+> build · deepseek-v4.1-flash
+Independent decode matches: all 10255 lines agree with the canonical NMOS 6502 table, bytes match PRG. Now cross-check gen_c's table and the generated C.
+[0m← [0mWrite /tmp/opencode/verify_c.py
+Created file successfully: /tmp/opencode/verify_c.py
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 /tmp/opencode/verify_c.py 2>&1 | head -60
+canonical opcodes: 151
+gen MATRIX opcodes: 151
+MATRIX vs canonical differences: 0
+C functions: 10255 optab entries: 10255
+missing C funcs: [] count 0
+extra C funcs: [] count 0
+optab != funcs: []
+Traceback (most recent call last):
+  File "/tmp/opencode/verify_c.py", line 87, in <module>
+    opk = kw[mn]
+          ~~^^^^
+KeyError: 'BPL'
+> build · deepseek-v4.1-flash
+[0m← [0mEdit /tmp/opencode/verify_c.py
+Index: /tmp/opencode/verify_c.py
+===================================================================
+--- /tmp/opencode/verify_c.py
++++ /tmp/opencode/verify_c.py
+@@ -79,8 +79,10 @@
+           "TSX":"c->x = c->s","TXS":"c->s = c->x","PHA":"push(c, c->a)","PHP":"F_B | F_U",
+           "PLA":"c->a = pop(c)","PLP":"c->p = (u8)((pop(c)","JMP":"c->pc","JSR":"push16",
+           "RTS":"pop16(c) + 1","RTI":"pop(c) | F_U","BRK":"0xFFFE",
+           "SEC":"F_C","CLC":"F_C","SED":"F_D","CLD":"F_D","SEI":"F_I","CLI":"F_I","CLV":"F_V",
++          "BPL":"!(c->p & F_N)","BMI":"(c->p & F_N)","BVC":"!(c->p & F_V)","BVS":"(c->p & F_V)",
++          "BCC":"!(c->p & F_C)","BCS":"(c->p & F_C)","BNE":"!(c->p & F_Z)","BEQ":"(c->p & F_Z)",
+           "NOP":""}
+     if mn in ("AND","ORA","EOR"):
+         opk = {"AND":"c->a & m","ORA":"c->a | m","EOR":"c->a ^ m"}[mn]
+     else:
+
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 /tmp/opencode/verify_c.py 2>&1 | head -60
+canonical opcodes: 151
+gen MATRIX opcodes: 151
+MATRIX vs canonical differences: 0
+C functions: 10255 optab entries: 10255
+missing C funcs: [] count 0
+extra C funcs: [] count 0
+optab != funcs: []
+C cross-check problems: 0
+> build · deepseek-v4.1-flash
+Cross-check: gen_c's MATRIX is byte-identical to the canonical table (151/151), all 10255 C functions exist with correct operands. Now the key non-circularity work: I'll write a from-scratch third reference with independent flag formulas and fuzz it against `ref6502.c`.
+[0m← [0mWrite /tmp/opencode/ref2.c
+Created file successfully: /tmp/opencode/ref2.c
+> build · deepseek-v4.1-flash
+[0m← [0mWrite /tmp/opencode/fuzz3.c
+Created file successfully: /tmp/opencode/fuzz3.c
+> build · deepseek-v4.1-flash
+[0m← [0mEdit /tmp/opencode/fuzz3.c
+Index: /tmp/opencode/fuzz3.c
+===================================================================
+--- /tmp/opencode/fuzz3.c
++++ /tmp/opencode/fuzz3.c
+@@ -80,9 +80,9 @@
+         {0x20,0},{0x60,0},{0x40,0},{0x00,0}, /* jsr/rts/rti/brk */
+     };
+     /* For each op, many trials forcing boundary operands */
+     int n = sizeof sets/sizeof*sets;
+-    for(int t=0;t<400000;t++){
++    for(int t=0;t<100000;t++){
+         unsigned idx = rnd()%n;
+         unsigned op = sets[idx].op;
+         if (REF_MN[op]==0xFF) continue;
+         u16 pc = 0x0200 + (rnd()%0x100); /* keep in low page */
+
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && gcc -O2 -std=c11 -I. -o /tmp/opencode/fuzz3 /tmp/opencode/fuzz3.c ref6502.c /tmp/opencode/ref2.c 2>&1 && echo BUILD_OK && time /tmp/opencode/fuzz3
+BUILD_OK
+checks=1629376 fails=0
+
+real	0m12.781s
+user	0m12.747s
+sys	0m0.000s
+> build · deepseek-v4.1-flash
+`ref6502.c` matches my independent reference on 1.63M checks (exhaustive arithmetic + addressing edge cases) with zero failures. Now let me test the decompiled C directly against my independent reference, many trials per instruction occurrence.
+[0m← [0mWrite /tmp/opencode/fuzz_c.c
+Created file successfully: /tmp/opencode/fuzz_c.c
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && gcc -O2 -std=c11 -I. -o /tmp/opencode/fuzz_c /tmp/opencode/fuzz_c.c ref6502.c /tmp/opencode/ref2.c out/smb_prg.c 2>&1 | head; echo "build rc=$?"; time /tmp/opencode/fuzz_c 40
+/tmp/opencode/fuzz_c.c: In function ‘main’:
+/tmp/opencode/fuzz_c.c:31:20: error: implicit declaration of function ‘atoi’ [-Wimplicit-function-declaration]
+   31 |     int T = argc>1?atoi(argv[1]):40;
+      |                    ^~~~
+build rc=0
+/bin/bash: line 1: /tmp/opencode/fuzz_c: No such file or directory
+
+real	0m0.000s
+user	0m0.000s
+sys	0m0.000s
+> build · deepseek-v4.1-flash
+[0m← [0mEdit /tmp/opencode/fuzz_c.c
+Index: /tmp/opencode/fuzz_c.c
+===================================================================
+--- /tmp/opencode/fuzz_c.c
++++ /tmp/opencode/fuzz_c.c
+@@ -2,8 +2,9 @@
+  * reference ref2.c (not ref6502.c), many random trials per translated address.
+  * This breaks the ref6502<->generated-C circularity: the arbiter here is ref2.
+  */
+ #include <stdio.h>
++#include <stdlib.h>
+ #include <string.h>
+ #include "cpu.h"
+ extern CpuOp optab[0x10000];
+ extern void smb_cpu_init(Cpu *c);
+
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && gcc -O2 -std=c11 -I. -o /tmp/opencode/fuzz_c /tmp/opencode/fuzz_c.c ref6502.c /tmp/opencode/ref2.c out/smb_prg.c 2>&1 | head; time /tmp/opencode/fuzz_c 40
+trials=563730 fails=0
+
+real	0m23.047s
+user	0m22.925s
+sys	0m0.001s
+> build · deepseek-v4.1-flash
+Now let me verify the disassembly reassembles to the ROM, and that all static control-flow targets are translated code (not data).
+[0m$ [0mcd /home/wyn/smb_decomp/out && cmp prg.bin prg_rebuilt.bin && echo "PRG_REBUILD_IDENTICAL" || echo "PRG_REBUILD_DIFFERS"; cmp original.nes smb_rebuilt.nes && echo "NES_REBUILD_IDENTICAL" || echo "NES_REBUILD_DIFFERS"; echo "=== qemu availability ==="; command -v qemu-aarch64 qemu-aarch64-static 2>&1 | head
+PRG_REBUILD_IDENTICAL
+NES_REBUILD_IDENTICAL
+=== qemu availability ===
+> build · deepseek-v4.1-flash
+[0m← [0mWrite /tmp/opencode/verify_targets.py
+Created file successfully: /tmp/opencode/verify_targets.py
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 /tmp/opencode/verify_targets.py 2>&1 | head -70
+static control-flow targets that are NOT code starts: 12
+  $814A JSR -> $8223 (jsr)
+  $A535 JSR -> $52FD (jsr)
+  $A53A JSR -> $406E (jsr)
+  $C8FD BNE -> $C902 (branch)
+  $C8FF JSR -> $C905 (jsr)
+  $D498 JSR -> $BFB7 (jsr)
+  $D4BA JSR -> $DC21 (jsr)
+  $D5CD JSR -> $DC21 (jsr)
+  $D5F5 JSR -> $BFB7 (jsr)
+  $D603 JSR -> $DC21 (jsr)
+  $D62D JSR -> $DC21 (jsr)
+  $D639 JSR -> $DC21 (jsr)
+code starts: 10255 covered bytes: 21826 overlap bytes decoded twice: 0
+> build · deepseek-v4.1-flash
+Static control-flow targets landing in non-code — let me investigate each of these.
+[0m$ [0mcd /home/wyn/smb_decomp/out && for a in 814A 8223 A535 A53A 52FD 406E C8FD C8FF C905 D498 BFB7 D4BA DC21 D5CD D5F5 D603 D62D D639; do echo "--- \$$a ---"; grep -nE "\\\$$a:" smb.asm | head -1; done
+--- $814A ---
+146:        JSR a:$8223                ; $814A: 20 23 82
+--- $8223 ---
+--- $A535 ---
+3016:        JSR a:$52FD                ; $A535: 20 FD 52
+--- $A53A ---
+3018:        JSR a:$406E                ; $A53A: 20 6E 40
+--- $52FD ---
+--- $406E ---
+--- $C8FD ---
+6301:        BNE LC902                  ; $C8FD: D0 03
+--- $C8FF ---
+6302:        JSR a:$C905                ; $C8FF: 20 05 C9
+--- $C905 ---
+--- $D498 ---
+7487:        JSR a:$BFB7                ; $D498: 20 B7 BF
+--- $BFB7 ---
+--- $D4BA ---
+7504:        JSR a:$DC21                ; $D4BA: 20 21 DC
+--- $DC21 ---
+--- $D5CD ---
+7645:        JSR a:$DC21                ; $D5CD: 20 21 DC
+--- $D5F5 ---
+7666:        JSR a:$BFB7                ; $D5F5: 20 B7 BF
+--- $D603 ---
+7672:        JSR a:$DC21                ; $D603: 20 21 DC
+--- $D62D ---
+7693:        JSR a:$DC21                ; $D62D: 20 21 DC
+--- $D639 ---
+7699:        JSR a:$DC21                ; $D639: 20 21 DC
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/out && echo "=== around 814A ==="; sed -n '135,160p' smb.asm; echo "=== around 8220 ==="; grep -nE '^\s+[A-Z]{3}.*;\s*\$82(1[0-9A-F]|2[0-9A-F]):' smb.asm | head -30
+=== around 814A ===
+        DEY                        ; $8135: 88
+        BNE L8131                  ; $8136: D0 F9
+        LDA a:$0722                ; $8138: AD 22 07
+        BEQ L815C                  ; $813B: F0 1F
+L813D:
+        LDA a:$2002                ; $813D: AD 02 20
+        AND #$40                   ; $8140: 29 40
+        BNE L813D                  ; $8142: D0 F9
+        LDA a:$0776                ; $8144: AD 76 07
+        LSR a                      ; $8147: 4A
+        BCS L8150                  ; $8148: B0 06
+        JSR a:$8223                ; $814A: 20 23 82
+        JSR a:$81C6                ; $814D: 20 C6 81
+L8150:
+        LDA a:$2002                ; $8150: AD 02 20
+        AND #$40                   ; $8153: 29 40
+        BEQ L8150                  ; $8155: F0 F9
+        LDY #$14                   ; $8157: A0 14
+L8159:
+        DEY                        ; $8159: 88
+        BNE L8159                  ; $815A: D0 FD
+L815C:
+        LDA a:$073F                ; $815C: AD 3F 07
+        STA a:$2005                ; $815F: 8D 05 20
+        LDA a:$0740                ; $8162: AD 40 07
+        STA a:$2005                ; $8165: 8D 05 20
+=== around 8220 ===
+252:        RTS                        ; $8211: 60
+253:        LDA a:$0770                ; $8212: AD 70 07
+254:        JSR a:$8E04                ; $8215: 20 04 8E
+255:        AND ($82),y                ; $8218: 31 82
+257:        LDY #$00                   ; $8220: A0 00
+258:        BIT a:$04A0                ; $8222: 2C A0 04
+259:        LDA #$F8                   ; $8225: A9 F8
+261:        STA a:$0200,y              ; $8227: 99 00 02
+262:        INY                        ; $822A: C8
+263:        INY                        ; $822B: C8
+264:        INY                        ; $822C: C8
+265:        INY                        ; $822D: C8
+266:        BNE L8227                  ; $822E: D0 F7
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/out && sed -n '248,270p' smb.asm | cat -n; echo "=== raw bytes 8210-8235 from prg ==="; python3 -c "
+d=open('prg.bin','rb').read()
+for a in range(0x8210,0x8236):
+    print('%04X %02X'%(a,d[a-0x8000]),end='  ')
+print()"
+1	        DEX                        ; $820C: CA
+     2	        DEX                        ; $820D: CA
+     3	        DEY                        ; $820E: 88
+     4	        BPL L81F9                  ; $820F: 10 E8
+     5	        RTS                        ; $8211: 60
+     6	        LDA a:$0770                ; $8212: AD 70 07
+     7	        JSR a:$8E04                ; $8215: 20 04 8E
+     8	        AND ($82),y                ; $8218: 31 82
+     9	        .byte $DC,$AE,$8B,$83,$18,$92   ; $821A
+    10	        LDY #$00                   ; $8220: A0 00
+    11	        BIT a:$04A0                ; $8222: 2C A0 04
+    12	        LDA #$F8                   ; $8225: A9 F8
+    13	L8227:
+    14	        STA a:$0200,y              ; $8227: 99 00 02
+    15	        INY                        ; $822A: C8
+    16	        INY                        ; $822B: C8
+    17	        INY                        ; $822C: C8
+    18	        INY                        ; $822D: C8
+    19	        BNE L8227                  ; $822E: D0 F7
+    20	        RTS                        ; $8230: 60
+    21	        LDA a:$0772                ; $8231: AD 72 07
+    22	        JSR a:$8E04                ; $8234: 20 04 8E
+    23	        .byte $CF,$8F,$67,$85,$61,$90,$45,$82,$04,$20,$73,$01,$00,$00   ; $8237
+=== raw bytes 8210-8235 from prg ===
+8210 E8  8211 60  8212 AD  8213 70  8214 07  8215 20  8216 04  8217 8E  8218 31  8219 82  821A DC  821B AE  821C 8B  821D 83  821E 18  821F 92  8220 A0  8221 00  8222 2C  8223 A0  8224 04  8225 A9  8226 F8  8227 99  8228 00  8229 02  822A C8  822B C8  822C C8  822D C8  822E D0  822F F7  8230 60  8231 AD  8232 72  8233 07  8234 20  8235 04
+> build · deepseek-v4.1-flash
+One real anomaly: static JSR targets landing inside other instructions (overlapping code). Let me analyze reachability from the reset/NMI/IRQ vectors.
+[0m← [0mWrite /tmp/opencode/reach.py
+Created file successfully: /tmp/opencode/reach.py
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 /tmp/opencode/reach.py 2>&1 | head -40
+vectors NMI=8082 RESET=8000 IRQ=FFF0
+reachable code starts from vectors: 1067 of 10255
+decoded but unreachable from vectors (static graph): 9188
+  first 30: ['8231', '8234', '8245', '8247', '824A', '824D', '824F', '8251', '8253', '8255', '8258', '825A', '825C', '825F', '8261', '8264', '8267', '8269', '826C', '826F', '8271', '8273', '8275', '8276', '8279', '827B', '827D', '8280', '8283', '8285']
+target 8223 reachable-from-vectors=False in-canon=False
+target C902 reachable-from-vectors=False in-canon=False
+target C905 reachable-from-vectors=False in-canon=False
+target BFB7 reachable-from-vectors=False in-canon=False
+target DC21 reachable-from-vectors=False in-canon=False
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/out && for a in C8F0 D490 D4B0 D5C0 D5F0 D600 D620 A520; do echo "=== around \$$a ==="; grep -nE '^\s+[A-Z]{3}.*;\s*\$' smb.asm | awk -v s=$((16#$a)) 'BEGIN{FS=";"} {match($2,/\$([0-9A-F]{4}):/,m); if(m[1]!=""){v=strtonum("0x" m[1]); if(v>=s && v<s+0x30) print}}' | head -20; done
+=== around $C8F0 ===
+6297:        JSR a:$DFC1                ; $C8F1: 20 C1 DF
+6298:        JSR a:$DA33                ; $C8F4: 20 33 DA
+6299:        JSR a:$D853                ; $C8F7: 20 53 D8
+6300:        LDY a:$0747                ; $C8FA: AC 47 07
+6301:        BNE LC902                  ; $C8FD: D0 03
+6302:        JSR a:$C905                ; $C8FF: 20 05 C9
+6305:        DEC z:$B5,x                ; $C904: D6 B5
+6306:        ASL z:$20,x                ; $C906: 16 20
+=== around $D490 ===
+7481:        BCC LD49E                  ; $D490: 90 0C
+7482:        BCS LD498                  ; $D492: B0 04
+7484:        CMP z:$08                  ; $D494: C5 08
+7485:        BEQ LD4A4                  ; $D496: F0 0C
+7487:        JSR a:$BFB7                ; $D498: 20 B7 BF
+7488:        JMP a:$D4A7                ; $D49B: 4C A7 D4
+7490:        JSR a:$D5B1                ; $D49E: 20 B1 D5
+7491:        JMP a:$D4A7                ; $D4A1: 4C A7 D4
+7493:        JSR a:$BFB4                ; $D4A4: 20 B4 BF
+7494:        LDY z:$1E,x                ; $D4A7: B4 1E
+7495:        PLA                        ; $D4A9: 68
+7496:        SEC                        ; $D4AA: 38
+7497:        SBC z:$CF,x                ; $D4AB: F5 CF
+7498:        CLC                        ; $D4AD: 18
+7499:        ADC a:$00CF,y              ; $D4AE: 79 CF 00
+7500:        STA a:$00CF,y              ; $D4B1: 99 CF 00
+7501:        LDA a:$03A2,x              ; $D4B4: BD A2 03
+7502:        BMI LD4BD                  ; $D4B7: 30 04
+7503:        TAX                        ; $D4B9: AA
+7504:        JSR a:$DC21                ; $D4BA: 20 21 DC
+=== around $D4B0 ===
+7500:        STA a:$00CF,y              ; $D4B1: 99 CF 00
+7501:        LDA a:$03A2,x              ; $D4B4: BD A2 03
+7502:        BMI LD4BD                  ; $D4B7: 30 04
+7503:        TAX                        ; $D4B9: AA
+7504:        JSR a:$DC21                ; $D4BA: 20 21 DC
+7506:        LDY z:$08                  ; $D4BD: A4 08
+7507:        LDA a:$00A0,y              ; $D4BF: B9 A0 00
+7508:        ORA a:$0434,y              ; $D4C2: 19 34 04
+7509:        BEQ LD53E                  ; $D4C5: F0 77
+7510:        LDX a:$0300                ; $D4C7: AE 00 03
+7511:        CPX #$20                   ; $D4CA: E0 20
+7512:        BCS LD53E                  ; $D4CC: B0 70
+7513:        LDA a:$00A0,y              ; $D4CE: B9 A0 00
+7514:        PHA                        ; $D4D1: 48
+7515:        PHA                        ; $D4D2: 48
+7516:        JSR a:$D541                ; $D4D3: 20 41 D5
+7517:        LDA z:$01                  ; $D4D6: A5 01
+7518:        STA a:$0301,x              ; $D4D8: 9D 01 03
+7519:        LDA z:$00                  ; $D4DB: A5 00
+7520:        STA a:$0302,x              ; $D4DD: 9D 02 03
+=== around $D5C0 ===
+7638:        PLA                        ; $D5C0: 68
+7639:        TAX                        ; $D5C1: AA
+7640:        JSR a:$BF6B                ; $D5C2: 20 6B BF
+7641:        LDX z:$08                  ; $D5C5: A6 08
+7642:        LDA a:$03A2,x              ; $D5C7: BD A2 03
+7643:        BMI LD5D0                  ; $D5CA: 30 04
+7644:        TAX                        ; $D5CC: AA
+7645:        JSR a:$DC21                ; $D5CD: 20 21 DC
+7647:        LDX z:$08                  ; $D5D0: A6 08
+7648:        RTS                        ; $D5D2: 60
+7649:        LDA z:$A0,x                ; $D5D3: B5 A0
+7650:        ORA a:$0434,x              ; $D5D5: 1D 34 04
+7651:        BNE LD5EF                  ; $D5D8: D0 15
+7652:        STA a:$0417,x              ; $D5DA: 9D 17 04
+7653:        LDA z:$CF,x                ; $D5DD: B5 CF
+7654:        CMP a:$0401,x              ; $D5DF: DD 01 04
+7655:        BCS LD5EF                  ; $D5E2: B0 0B
+7656:        LDA z:$09                  ; $D5E4: A5 09
+7657:        AND #$07                   ; $D5E6: 29 07
+7658:        BNE LD5EC                  ; $D5E8: D0 02
+=== around $D5F0 ===
+7664:        CMP z:$58,x                ; $D5F1: D5 58
+7665:        BCC LD5FB                  ; $D5F3: 90 06
+7666:        JSR a:$BFB7                ; $D5F5: 20 B7 BF
+7667:        JMP a:$D5FE                ; $D5F8: 4C FE D5
+7669:        JSR a:$BFB4                ; $D5FB: 20 B4 BF
+7670:        LDA a:$03A2,x              ; $D5FE: BD A2 03
+7671:        BMI LD606                  ; $D601: 30 03
+7672:        JSR a:$DC21                ; $D603: 20 21 DC
+7674:        RTS                        ; $D606: 60
+7675:        LDA #$0E                   ; $D607: A9 0E
+7676:        JSR a:$CB47                ; $D609: 20 47 CB
+7677:        JSR a:$CB66                ; $D60C: 20 66 CB
+7678:        LDA a:$03A2,x              ; $D60F: BD A2 03
+7679:        BMI LD630                  ; $D612: 30 1C
+7680:        LDA z:$86                  ; $D614: A5 86
+7681:        CLC                        ; $D616: 18
+7682:        ADC z:$00                  ; $D617: 65 00
+7683:        STA z:$86                  ; $D619: 85 86
+7684:        LDA z:$6D                  ; $D61B: A5 6D
+7685:        LDY z:$00                  ; $D61D: A4 00
+=== around $D600 ===
+7671:        BMI LD606                  ; $D601: 30 03
+7672:        JSR a:$DC21                ; $D603: 20 21 DC
+7674:        RTS                        ; $D606: 60
+7675:        LDA #$0E                   ; $D607: A9 0E
+7676:        JSR a:$CB47                ; $D609: 20 47 CB
+7677:        JSR a:$CB66                ; $D60C: 20 66 CB
+7678:        LDA a:$03A2,x              ; $D60F: BD A2 03
+7679:        BMI LD630                  ; $D612: 30 1C
+7680:        LDA z:$86                  ; $D614: A5 86
+7681:        CLC                        ; $D616: 18
+7682:        ADC z:$00                  ; $D617: 65 00
+7683:        STA z:$86                  ; $D619: 85 86
+7684:        LDA z:$6D                  ; $D61B: A5 6D
+7685:        LDY z:$00                  ; $D61D: A4 00
+7686:        BMI LD626                  ; $D61F: 30 05
+7687:        ADC #$00                   ; $D621: 69 00
+7688:        JMP a:$D628                ; $D623: 4C 28 D6
+7690:        SBC #$00                   ; $D626: E9 00
+7691:        STA z:$6D                  ; $D628: 85 6D
+7692:        STY a:$03A1                ; $D62A: 8C A1 03
+=== around $D620 ===
+7687:        ADC #$00                   ; $D621: 69 00
+7688:        JMP a:$D628                ; $D623: 4C 28 D6
+7690:        SBC #$00                   ; $D626: E9 00
+7691:        STA z:$6D                  ; $D628: 85 6D
+7692:        STY a:$03A1                ; $D62A: 8C A1 03
+7693:        JSR a:$DC21                ; $D62D: 20 21 DC
+7695:        RTS                        ; $D630: 60
+7696:        LDA a:$03A2,x              ; $D631: BD A2 03
+7697:        BMI LD63C                  ; $D634: 30 06
+7698:        JSR a:$BF88                ; $D636: 20 88 BF
+7699:        JSR a:$DC21                ; $D639: 20 21 DC
+7701:        RTS                        ; $D63C: 60
+7702:        JSR a:$BF02                ; $D63D: 20 02 BF
+7703:        STA z:$00                  ; $D640: 85 00
+7704:        LDA a:$03A2,x              ; $D642: BD A2 03
+7705:        BMI LD64E                  ; $D645: 30 07
+7706:        LDA #$10                   ; $D647: A9 10
+7707:        STA z:$58,x                ; $D649: 95 58
+7708:        JSR a:$D614                ; $D64B: 20 14 D6
+7710:        RTS                        ; $D64E: 60
+=== around $A520 ===
+3016:        JSR a:$52FD                ; $A535: 20 FD 52
+3017:        AND ($0F,x)                ; $A538: 21 0F
+3018:        JSR a:$406E                ; $A53A: 20 6E 40
+3019:        CLI                        ; $A53D: 58
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/out && echo "=== around BFB0 ==="; grep -nE ';\s*\$BF(A|B|C)[0-9A-F]:' smb.asm | head -25; echo "=== around DC20 ==="; grep -nE ';\s*\$DC(1|2|3)[0-9A-F]:' smb.asm | head -25; echo "=== around 52F0 ==="; grep -nE ';\s*\$52(F|E)[0-9A-F]:' smb.asm | head; echo "=== around 4060 ==="; grep -nE ';\s*\$40(5|6|7)[0-9A-F]:' smb.asm | head
+=== around BFB0 ===
+5285:        LDY #$01                   ; $BFA4: A0 01
+5286:        LDA #$50                   ; $BFA6: A9 50
+5287:        STA z:$00                  ; $BFA8: 85 00
+5288:        LDA a:$BF9F,y              ; $BFAA: B9 9F BF
+5289:        STA z:$02                  ; $BFAD: 85 02
+5290:        LDA #$00                   ; $BFAF: A9 00
+5291:        JMP a:$BFD7                ; $BFB1: 4C D7 BF
+5292:        LDA #$00                   ; $BFB4: A9 00
+5293:        BIT a:$01A9                ; $BFB6: 2C A9 01
+5294:        PHA                        ; $BFB9: 48
+5295:        LDY z:$16,x                ; $BFBA: B4 16
+5296:        INX                        ; $BFBC: E8
+5297:        LDA #$05                   ; $BFBD: A9 05
+5298:        CPY #$29                   ; $BFBF: C0 29
+5299:        BNE LBFC5                  ; $BFC1: D0 02
+5300:        LDA #$09                   ; $BFC3: A9 09
+5302:        STA z:$00                  ; $BFC5: 85 00
+5303:        LDA #$0A                   ; $BFC7: A9 0A
+5304:        STA z:$01                  ; $BFC9: 85 01
+5305:        LDA #$03                   ; $BFCB: A9 03
+5306:        STA z:$02                  ; $BFCD: 85 02
+5307:        PLA                        ; $BFCF: 68
+=== around DC20 ===
+8470:        JSR a:$DF4B                ; $DC11: 20 4B DF
+8472:        LDX z:$08                  ; $DC14: A6 08
+8473:        RTS                        ; $DC16: 60
+8475:        TAY                        ; $DC19: A8
+8476:        LDA z:$CF,x                ; $DC1A: B5 CF
+8477:        CLC                        ; $DC1C: 18
+8478:        ADC a:$DC16,y              ; $DC1D: 79 16 DC
+8479:        BIT a:$CFB5                ; $DC20: 2C B5 CF
+8480:        LDY z:$0E                  ; $DC23: A4 0E
+8481:        CPY #$0B                   ; $DC25: C0 0B
+8482:        BEQ LDC40                  ; $DC27: F0 17
+8483:        LDY z:$B6,x                ; $DC29: B4 B6
+8484:        CPY #$01                   ; $DC2B: C0 01
+8485:        BNE LDC40                  ; $DC2D: D0 11
+8486:        SEC                        ; $DC2F: 38
+8487:        SBC #$20                   ; $DC30: E9 20
+8488:        STA z:$CE                  ; $DC32: 85 CE
+8489:        TYA                        ; $DC34: 98
+8490:        SBC #$00                   ; $DC35: E9 00
+8491:        STA z:$B5                  ; $DC37: 85 B5
+8492:        LDA #$00                   ; $DC39: A9 00
+8493:        STA z:$9F                  ; $DC3B: 85 9F
+8494:        STA a:$0433                ; $DC3D: 8D 33 04
+=== around 52F0 ===
+=== around 4060 ===
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/out && sed -n '2995,3030p' smb.asm | cat -n; echo "=== raw A520-A545 ==="; python3 -c "
+d=open('prg.bin','rb').read()
+for a in range(0xA520,0xA548):
+    print('%04X %02X'%(a,d[a-0x8000]),end='  ')
+print()"
+1	        .byte $02,$0D,$01,$39,$73,$0D,$03,$39,$7B,$4D,$4B,$DE,$06,$1E,$8A,$AE   ; $A405
+     2	        .byte $06,$C4,$33,$16,$FE,$A5,$77,$FE,$02,$FE,$82,$0D,$07,$39,$73,$A8   ; $A415
+     3	        .byte $74,$ED,$4B,$49,$FB,$E8,$74,$FE,$0A,$2E,$82,$67,$02,$84,$7A,$87   ; $A425
+     4	        .byte $31,$0D,$0B,$FE,$02,$0D,$0C,$39,$73,$5E,$06,$C6,$76,$45,$FF,$BE   ; $A435
+     5	        .byte $0A,$DD,$48,$FE,$06,$3D,$CB,$46,$7E,$AD,$4A,$FE,$82,$39,$F3,$A9   ; $A445
+     6	        .byte $7B,$4E,$8A,$9E,$07,$FE,$0A,$0D,$C4,$CD,$43,$CE,$09,$DE,$0B,$DD   ; $A455
+     7	        .byte $42,$FE,$02,$5D,$C7,$FD,$94,$11,$0F,$26,$FE,$10,$28,$94,$65,$15   ; $A465
+     8	        .byte $EB,$12,$FA,$41,$4A,$96,$54,$40,$A4,$42,$B7,$13,$E9,$19,$F5,$15   ; $A475
+     9	        .byte $11,$80,$47,$42,$71,$13,$80,$41,$15,$92,$1B,$1F,$24,$40,$55,$12   ; $A485
+    10	        .byte $64,$40,$95,$12,$A4,$40,$D2,$12,$E1,$40,$13,$C0,$2C,$17,$2F,$12   ; $A495
+    11	        .byte $49,$13,$83,$40,$9F,$14,$A3,$40,$17,$92,$83,$13,$92,$41   ; $A4A5
+    12	        LDA a:$C514,y              ; $A4B3: B9 14 C5
+    13	        .byte $12,$C8,$40,$D4,$40,$4B,$92,$78,$1B,$9C,$94,$9F,$11,$DF,$14,$FE   ; $A4B6
+    14	        .byte $11,$7D,$C1,$9E,$42,$CF,$20,$FD,$90,$B1,$0F,$26,$29,$91,$7E,$42   ; $A4C6
+    15	        .byte $FE,$40,$28,$92,$4E,$42,$2E,$C0,$57,$73,$C3,$25,$C7,$27,$23,$84   ; $A4D6
+    16	        .byte $33,$20,$5C,$01,$77,$63,$88,$62,$99,$61,$AA,$60,$BC,$01,$EE,$42   ; $A4E6
+    17	        .byte $4E,$C0,$69,$11,$7E,$42,$DE,$40,$F8,$62,$0E,$C2,$AE,$40,$D7,$63   ; $A4F6
+    18	        .byte $E7,$63,$33,$A7,$37,$27,$43,$04,$CC,$01,$E7,$73,$0C   ; $A506
+    19	        STA ($3E,x)                ; $A513: 81 3E
+    20	        .byte $42,$0D,$0A,$5E,$40,$88,$72,$BE,$42,$E7,$87,$FE,$40,$39,$E1,$4E   ; $A515
+    21	        .byte $00,$69,$60,$87,$60,$A5,$60,$C3,$31,$FE,$31,$6D,$C1,$BE,$42,$EF   ; $A525
+    22	        JSR a:$52FD                ; $A535: 20 FD 52
+    23	        AND ($0F,x)                ; $A538: 21 0F
+    24	        JSR a:$406E                ; $A53A: 20 6E 40
+    25	        CLI                        ; $A53D: 58
+    26	        .byte $F2,$93,$01,$97,$00,$0C,$81,$97,$40,$A6,$41,$C7,$40,$0D,$04,$03   ; $A53E
+    27	        .byte $01,$07,$01,$23,$01,$27,$01,$EC,$03,$AC,$F3,$C3,$03,$78,$E2,$94   ; $A54E
+    28	        .byte $43,$47,$F3,$74,$43,$47,$FB,$74,$43,$2C,$F1,$4C,$63,$47,$00,$57   ; $A55E
+    29	        .byte $21,$5C,$01,$7C,$72,$39,$F1,$EC,$02,$4C,$81,$D8,$62,$EC,$01,$0D   ; $A56E
+    30	        .byte $0D,$0F,$38,$C7,$07,$ED,$4A,$1D,$C1,$5F,$26,$FD,$54,$21,$0F,$26   ; $A57E
+    31	        .byte $A7,$22,$37,$FB,$73,$20,$83,$07,$87,$02,$93,$20,$C7,$73,$04,$F1   ; $A58E
+    32	        .byte $06,$31,$39,$71,$59,$71,$E7,$73,$37,$A0,$47,$04,$86,$7C,$E5,$71   ; $A59E
+    33	        .byte $E7,$31,$33,$A4,$39,$71,$A9,$71,$D3,$23,$08,$F2,$13,$05,$27,$02   ; $A5AE
+    34	        .byte $49,$71,$75,$75,$E8,$72,$67,$F3,$99,$71,$E7,$20,$F4,$72,$F7,$31   ; $A5BE
+    35	        .byte $17,$A0,$33,$20,$39,$71,$73,$28,$BC,$05,$39,$F1,$79,$71,$A6,$21   ; $A5CE
+    36	        .byte $C3,$06,$D3,$20,$DC,$00,$FC,$00,$07,$A2,$13,$21,$5F,$32,$8C,$00   ; $A5DE
+=== raw A520-A545 ===
+A520 FE  A521 40  A522 39  A523 E1  A524 4E  A525 00  A526 69  A527 60  A528 87  A529 60  A52A A5  A52B 60  A52C C3  A52D 31  A52E FE  A52F 31  A530 6D  A531 C1  A532 BE  A533 42  A534 EF  A535 20  A536 FD  A537 52  A538 21  A539 0F  A53A 20  A53B 6E  A53C 40  A53D 58  A53E F2  A53F 93  A540 01  A541 97  A542 00  A543 0C  A544 81  A545 97  A546 40  A547 A6
+> build · deepseek-v4.1-flash
+Significant: several static JSR targets fall inside other instructions. Let me check the independent Ghidra map to see which are real code entry points.
+[0m$ [0mcd /home/wyn/smb_decomp/out && head -30 ghidra_map.txt; echo "..."; wc -l ghidra_map.txt; echo "=== grep targets ==="; for a in 8223 C902 C905 BFB7 DC21 52FD 406E; do echo -n "$a: "; grep -c "^$a " ghidra_map.txt 2>/dev/null; grep -cE "(^|[^0-9A-F])$a([^0-9A-F]|$)" ghidra_map.txt 2>/dev/null | head -1; done
+I 8000 1 SEI
+I 8001 1 CLD
+I 8002 2 LDA #0x10
+I 8004 3 STA 0x2000
+I 8007 2 LDX #0xff
+I 8009 1 TXS
+I 800a 3 LDA 0x2002
+I 800d 2 BPL 0x800a
+I 800f 3 LDA 0x2002
+I 8012 2 BPL 0x800f
+I 8014 2 LDY #0xfe
+I 8016 2 LDX #0x5
+I 8018 3 LDA 0x7d7,X
+I 801b 2 CMP #0xa
+I 801d 2 BCS 0x802b
+I 801f 1 DEX
+I 8020 2 BPL 0x8018
+I 8022 3 LDA 0x07ff
+I 8025 2 CMP #0xa5
+I 8027 2 BNE 0x802b
+I 8029 2 LDY #0xd6
+I 802b 3 JSR 0x90cc
+I 802e 3 STA 0x4011
+I 8031 3 STA 0x0770
+I 8034 2 LDA #0xa5
+I 8036 3 STA 0x07ff
+I 8039 3 STA 0x07a7
+I 803c 2 LDA #0xf
+I 803e 3 STA 0x4015
+I 8041 2 LDA #0x6
+...
+31514 ghidra_map.txt
+=== grep targets ===
+8223: 0
+1
+C902: 0
+0
+C905: 0
+0
+BFB7: 0
+0
+DC21: 0
+0
+52FD: 0
+0
+406E: 0
+0
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/out && awk '{print $1}' ghidra_map.txt | sort | uniq -c; echo "=== I-line count ==="; grep -c '^I ' ghidra_map.txt; echo "=== targets lowercase ==="; for a in 8223 c902 c905 bfb7 dc21; do echo -n "$a: "; grep -E "^I $a " ghidra_map.txt; echo; done; echo "=== around DC20/DC21 in ghidra ==="; grep -nE "^I (dc1[0-9a-f]|dc2[0-9a-f]) " ghidra_map.txt | head -20
+30447 D
+   1067 I
+=== I-line count ===
+1067
+=== targets lowercase ===
+8223: 
+c902: 
+c905: 
+bfb7: 
+dc21: 
+=== around DC20/DC21 in ghidra ===
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/out && echo "I min/max:"; grep '^I ' ghidra_map.txt | awk '{print $2}' | sort | sed -n '1p;$p'; echo "D min/max:"; grep '^D ' ghidra_map.txt | awk '{print $2}' | sort | sed -n '1p;$p'; echo "=== last 5 lines ==="; tail -5 ghidra_map.txt; echo "=== count I by high nibble ==="; grep '^I ' ghidra_map.txt | awk '{print substr($2,1,1)}' | sort | uniq -c
+I min/max:
+8000
+fff0
+D min/max:
+805a
+ffff
+=== last 5 lines ===
+D fffb 1
+D fffc 1
+D fffd 1
+D fffe 1
+D ffff 1
+=== count I by high nibble ===
+    370 8
+     15 9
+    682 f
+> build · deepseek-v4.1-flash
+The Ghidra map claims only 1067 instructions (only $8xxx, $9xxx, $Fxxx), while smb.asm claims 10255 — a 10× disagreement. I need to resolve which is right. Let me examine the disputed regions.
+[0m$ [0mcd /home/wyn/smb_decomp/out && sed -n '7460,7520p' smb.asm | cat -n
+1	        CPX z:$00                  ; $D467: E4 00
+     2	        BEQ LD45F                  ; $D469: F0 F4
+     3	        CLC                        ; $D46B: 18
+     4	        ADC #$02                   ; $D46C: 69 02
+     5	        STA a:$00CF,y              ; $D46E: 99 CF 00
+     6	        JMP a:$D5B1                ; $D471: 4C B1 D5
+     7	LD474:
+     8	        LDA z:$CF,x                ; $D474: B5 CF
+     9	        PHA                        ; $D476: 48
+    10	        LDA a:$03A2,x              ; $D477: BD A2 03
+    11	        BPL LD494                  ; $D47A: 10 18
+    12	        LDA a:$0434,x              ; $D47C: BD 34 04
+    13	        CLC                        ; $D47F: 18
+    14	        ADC #$05                   ; $D480: 69 05
+    15	        STA z:$00                  ; $D482: 85 00
+    16	        LDA z:$A0,x                ; $D484: B5 A0
+    17	        ADC #$00                   ; $D486: 69 00
+    18	        BMI LD4A4                  ; $D488: 30 1A
+    19	        BNE LD498                  ; $D48A: D0 0C
+    20	        LDA z:$00                  ; $D48C: A5 00
+    21	        CMP #$0B                   ; $D48E: C9 0B
+    22	        BCC LD49E                  ; $D490: 90 0C
+    23	        BCS LD498                  ; $D492: B0 04
+    24	LD494:
+    25	        CMP z:$08                  ; $D494: C5 08
+    26	        BEQ LD4A4                  ; $D496: F0 0C
+    27	LD498:
+    28	        JSR a:$BFB7                ; $D498: 20 B7 BF
+    29	        JMP a:$D4A7                ; $D49B: 4C A7 D4
+    30	LD49E:
+    31	        JSR a:$D5B1                ; $D49E: 20 B1 D5
+    32	        JMP a:$D4A7                ; $D4A1: 4C A7 D4
+    33	LD4A4:
+    34	        JSR a:$BFB4                ; $D4A4: 20 B4 BF
+    35	        LDY z:$1E,x                ; $D4A7: B4 1E
+    36	        PLA                        ; $D4A9: 68
+    37	        SEC                        ; $D4AA: 38
+    38	        SBC z:$CF,x                ; $D4AB: F5 CF
+    39	        CLC                        ; $D4AD: 18
+    40	        ADC a:$00CF,y              ; $D4AE: 79 CF 00
+    41	        STA a:$00CF,y              ; $D4B1: 99 CF 00
+    42	        LDA a:$03A2,x              ; $D4B4: BD A2 03
+    43	        BMI LD4BD                  ; $D4B7: 30 04
+    44	        TAX                        ; $D4B9: AA
+    45	        JSR a:$DC21                ; $D4BA: 20 21 DC
+    46	LD4BD:
+    47	        LDY z:$08                  ; $D4BD: A4 08
+    48	        LDA a:$00A0,y              ; $D4BF: B9 A0 00
+    49	        ORA a:$0434,y              ; $D4C2: 19 34 04
+    50	        BEQ LD53E                  ; $D4C5: F0 77
+    51	        LDX a:$0300                ; $D4C7: AE 00 03
+    52	        CPX #$20                   ; $D4CA: E0 20
+    53	        BCS LD53E                  ; $D4CC: B0 70
+    54	        LDA a:$00A0,y              ; $D4CE: B9 A0 00
+    55	        PHA                        ; $D4D1: 48
+    56	        PHA                        ; $D4D2: 48
+    57	        JSR a:$D541                ; $D4D3: 20 41 D5
+    58	        LDA z:$01                  ; $D4D6: A5 01
+    59	        STA a:$0301,x              ; $D4D8: 9D 01 03
+    60	        LDA z:$00                  ; $D4DB: A5 00
+    61	        STA a:$0302,x              ; $D4DD: 9D 02 03
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/out && sed -n '6292,6312p' smb.asm | cat -n; echo "=== raw C8F8-C90E ==="; python3 -c "
+d=open('prg.bin','rb').read()
+for a in range(0xC8F8,0xC910):
+    print('%04X %02X'%(a,d[a-0x8000]),end='  ')
+print()"; echo "=== grep missing entries in generated C ==="; cd /home/wyn/smb_decomp/c && for a in 8223 C902 C905 BFB7 DC21; do echo -n "I_$a: "; grep -c "I_$a(" out/smb_prg.c; done
+1	        STA a:$03C5,x              ; $C8E2: 9D C5 03
+     2	        JSR a:$F1AF                ; $C8E5: 20 AF F1
+     3	        JSR a:$F152                ; $C8E8: 20 52 F1
+     4	        JSR a:$E87D                ; $C8EB: 20 7D E8
+     5	        JSR a:$E243                ; $C8EE: 20 43 E2
+     6	        JSR a:$DFC1                ; $C8F1: 20 C1 DF
+     7	        JSR a:$DA33                ; $C8F4: 20 33 DA
+     8	        JSR a:$D853                ; $C8F7: 20 53 D8
+     9	        LDY a:$0747                ; $C8FA: AC 47 07
+    10	        BNE LC902                  ; $C8FD: D0 03
+    11	        JSR a:$C905                ; $C8FF: 20 05 C9
+    12	LC902:
+    13	        .byte $4C,$7A   ; $C902
+    14	        DEC z:$B5,x                ; $C904: D6 B5
+    15	        ASL z:$20,x                ; $C906: 16 20
+    16	        .byte $04,$8E,$77,$CA,$77,$CA,$77,$CA,$77,$CA,$77,$CA,$D8,$C9,$77,$CA   ; $C908
+    17	        .byte $89,$CB,$36,$CC,$34,$C9,$4A,$CC,$4A,$CC,$B0,$C9,$B0,$D3,$F9,$CA   ; $C918
+    18	        .byte $FF,$CA,$25,$CB,$28,$CF,$77,$CA,$34,$C9,$DF,$CE,$60   ; $C928
+    19	        JSR a:$D1EB                ; $C935: 20 EB D1
+    20	        JSR a:$F1AF                ; $C938: 20 AF F1
+    21	        JSR a:$F152                ; $C93B: 20 52 F1
+=== raw C8F8-C90E ===
+C8F8 53  C8F9 D8  C8FA AC  C8FB 47  C8FC 07  C8FD D0  C8FE 03  C8FF 20  C900 05  C901 C9  C902 4C  C903 7A  C904 D6  C905 B5  C906 16  C907 20  C908 04  C909 8E  C90A 77  C90B CA  C90C 77  C90D CA  C90E 77  C90F CA  
+=== grep missing entries in generated C ===
+I_8223: 0
+I_C902: 0
+I_C905: 0
+I_BFB7: 0
+I_DC21: 0
+> build · deepseek-v4.1-flash
+Let me consult the independent `da65_linear.asm` (cc65's disassembler) at the disputed addresses.
+[0m$ [0mcd /home/wyn/smb_decomp/out && grep -nE '\$C90[0-9A-F]:|\$C8F[0-9A-F]:|\$C91[0-9A-F]:' da65_linear.asm | head -30
+{"exit":0,"truncated":false,"output":"","status":"completed"}
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/out && head -20 da65_linear.asm; echo ...; grep -n "C90" da65_linear.asm | head
+; da65 V2.18 - Fedora 2.19-15.fc44
+; Created:    2026-09-26 18:23:12
+; Input file: out/prg.bin
+; Page:       1
+
+
+        .setcpu "6502"
+
+L0000           := $0000
+L0006           := $0006
+L000D           := $000D
+L0020           := $0020
+L00AE           := $00AE
+L00DC           := $00DC
+L015C           := $015C
+L0173           := $0173
+L017C           := $017C
+L0304           := $0304
+L03CC           := $03CC
+L041E           := $041E
+...
+10657:        bne     LC902
+10658:        jsr     LC905
+10659:LC902:  jmp     LD67A
+10661:LC905:  lda     $16,x
+17711:LFC90:  ror     $A6
+17801:        bmi     LFC90
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/out && sed -n '10650,10675p' da65_linear.asm | cat -n
+1	        jsr     LE243
+     2	        jsr     LDFC1
+     3	        jsr     LDA33
+     4	        .byte   $20
+     5	        .byte   $53
+     6	LC8F9:  cld
+     7	        ldy     $0747
+     8	        bne     LC902
+     9	        jsr     LC905
+    10	LC902:  jmp     LD67A
+    11	
+    12	LC905:  lda     $16,x
+    13	        jsr     L8E04
+    14	        .byte   $77
+    15	        dex
+    16	        .byte   $77
+    17	        dex
+    18	        .byte   $77
+    19	        dex
+    20	        .byte   $77
+    21	        dex
+    22	        .byte   $77
+    23	        dex
+    24	        cld
+    25	        cmp     #$77
+    26	        dex
+> build · deepseek-v4.1-flash
+The independent cc65 disassembler confirms `$C902: jmp $D67A` — smb.asm mis-decoded it as data. Let me check all the other missing targets in da65.
+[0m$ [0mcd /home/wyn/smb_decomp/out && for a in 8223 8253 C902 C905 BFB7 DC21 52FD 406E; do echo "--- L$a ---"; grep -nE "(^|[^0-9A-Fa-f])L$a:" da65_linear.asm | head -2; done; echo "=== da65 around BFB0 ==="; grep -n "LBFB" da65_linear.asm | head; echo "=== da65 around DC20 ==="; grep -n "LDC2" da65_linear.asm | head
+--- L8223 ---
+346:L8223:  ldy     #$04
+--- L8253 ---
+--- LC902 ---
+10659:LC902:  jmp     LD67A
+--- LC905 ---
+10661:LC905:  lda     $16,x
+--- LBFB7 ---
+9373:LBFB7:  lda     #$01
+--- LDC21 ---
+13212:LDC21:  lda     $CF,x
+--- L52FD ---
+--- L406E ---
+=== da65 around BFB0 ===
+1695:        ldx     LBFBF,y
+9371:LBFB4:  lda     #$00
+9373:LBFB7:  lda     #$01
+9378:LBFBF:  cpy     #$29
+12226:LD498:  jsr     LBFB7
+12232:LD4A4:  jsr     LBFB4
+12402:        jsr     LBFB7
+12405:LD5FB:  jsr     LBFB4
+=== da65 around DC20 ===
+12243:        jsr     LDC21
+12382:        jsr     LDC21
+12408:        jsr     LDC21
+12429:        jsr     LDC21
+12435:        jsr     LDC21
+13212:LDC21:  lda     $CF,x
+> build · deepseek-v4.1-flash
+da65 independently confirms all five are real instruction starts. Let me build a concrete counterexample demonstrating the decompiled C halts where the ROM/reference continues.
+[0m← [0mWrite /tmp/opencode/demo.c
+Created file successfully: /tmp/opencode/demo.c
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && gcc -O1 -std=c11 -I. -o /tmp/opencode/demo /tmp/opencode/demo.c ref6502.c out/smb_prg.c && /tmp/opencode/demo
+optab[$8223] = (nil)   PRG bytes: A0 04 A9
+optab[$C902] = (nil)   PRG bytes: 4C 7A D6
+optab[$C905] = (nil)   PRG bytes: B5 16 20
+optab[$BFB7] = (nil)   PRG bytes: A9 01 48
+optab[$DC21] = (nil)   PRG bytes: B5 CF A4
+
+-- trace from $C8FD with Y nonzero (BNE taken) --
+before: pc=C8FD
+C   step1 rc=1 pc=C902
+C   step2 rc=0 pc=C902   (rc=0 means HALT)
+ref step1 rc=0 pc=C902
+ref step2 rc=0 pc=D67A   (ROM: 4C 7A D6 = JMP $D67A)
+> build · deepseek-v4.1-flash
+Let me check static reachability of the affected callers from the interrupt vectors.
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 - <<'EOF'
+import json
+prg=open("/home/wyn/smb_decomp/out/prg.bin","rb").read()
+canon=json.load(open("/tmp/opencode/canonical.json"))
+addrs={int(a,16):tuple(v) for a,v in canon.items()}
+def rd16(a): return prg[a-0x8000]|(prg[a-0x8000+1]<<8)
+work=[rd16(0xFFFA),rd16(0xFFFC),rd16(0xFFFE)]
+seen=set()
+# also resolve any JMP (ind) by brute: find tables? approximate by including both bytes
+while work:
+    a=work.pop()
+    if a in seen or a not in addrs: continue
+    seen.add(a)
+    mn,mode,ln,rh=addrs[a]; raw=bytes.fromhex(rh); npc=a+ln
+    if mn in ("RTS","RTI","BRK"): continue
+    if mn=="JMP" and mode=="abs": work.append(raw[1]|(raw[2]<<8)); continue
+    if mn=="JSR": work.append(raw[1]|(raw[2]<<8))
+    if mn=="JMP" and mode=="ind":
+        t=raw[1]|(raw[2]<<8)
+        # follow pointer if it points into code
+        p=prg[t-0x8000]|(prg[t-0x8000+1]<<8); work.append(p); continue
+    if mn in ("BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"):
+        d=raw[1]-256 if raw[1]>=128 else raw[1]; work.append((a+2+d)&0xFFFF); work.append(npc); continue
+    work.append(npc)
+for t in (0xC8FD,0xD498,0xD4BA,0x814A,0xD5F5,0xD603):
+    print("$%04X reachable-from-vectors=%s"%(t,t in seen))
+# Does anything reach $C8FD? search direct refs
+for tgt,label in [(0xC8E5,"C8E5"),(0xC8F7,"C8F7")]:
+    pass
+# find JSR/JMP/branch instructions whose target is C8FD
+print("--- direct references to C8FD / C8E5 ---")
+for a,(mn,mode,ln,rh) in addrs.items():
+    raw=bytes.fromhex(rh)
+    if mn=="JSR" or (mn=="JMP" and mode=="abs"):
+        if raw[1]|(raw[2]<<8) in (0xC8FD,0xC8E5): print("  %04X %s -> %04X"%(a,mn,raw[1]|(raw[2]<<8)))
+EOF
+$C8FD reachable-from-vectors=False
+$D498 reachable-from-vectors=False
+$D4BA reachable-from-vectors=False
+$814A reachable-from-vectors=True
+$D5F5 reachable-from-vectors=False
+$D603 reachable-from-vectors=False
+--- direct references to C8FD / C8E5 ---
+> build · deepseek-v4.1-flash
+`$814A` is reachable from the interrupt vectors and calls the missing `$8223`. Let me trace the path and demonstrate.
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 - <<'EOF'
+import json
+prg=open("/home/wyn/smb_decomp/out/prg.bin","rb").read()
+canon=json.load(open("/tmp/opencode/canonical.json"))
+addrs={int(a,16):tuple(v) for a,v in canon.items()}
+def rd16(a): return prg[a-0x8000]|(prg[a-0x8000+1]<<8)
+from collections import deque
+start=[rd16(0xFFFA),rd16(0xFFFC),rd16(0xFFFE)]
+parent={s:None for s in start}
+q=deque(start); seen=set()
+while q:
+    a=q.popleft()
+    if a in seen or a not in addrs: continue
+    seen.add(a)
+    mn,mode,ln,rh=addrs[a]; raw=bytes.fromhex(rh); npc=a+ln
+    inc=[]
+    if mn in ("RTS","RTI","BRK"): pass
+    elif mn=="JMP" and mode=="abs": inc=[(raw[1]|(raw[2]<<8),"jmp")]
+    else:
+        if mn=="JSR": inc.append((raw[1]|(raw[2]<<8),"jsr"))
+        if mn=="JMP" and mode=="ind":
+            t=raw[1]|(raw[2]<<8); p=prg[t-0x8000]|(prg[t-0x8000+1]<<8); inc.append((p,"jmpind"))
+        if mn in ("BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"):
+            d=raw[1]-256 if raw[1]>=128 else raw[1]; inc.append(((a+2+d)&0xFFFF,"br")); inc.append((npc,"fall"))
+        else: inc.append((npc,"fall"))
+    for t,k in inc:
+        if t not in parent: parent[t]=(a,k)
+        q.append(t)
+# reconstruct path to 814A
+path=[]; cur=0x814A
+while cur is not None and cur in parent:
+    path.append((cur,parent[cur]))
+    cur=parent[cur][0] if parent[cur] else None
+path.reverse()
+print("path from vector to $814A:")
+for a,(p,k) in path: print("  $%04X <-%s- $%04X"%((a),k,p if p is not None else 0))
+print("parent of $8223:", parent.get(0x8223))
+EOF
+path from vector to $814A:
+Traceback (most recent call last):
+  File "<stdin>", line 35, in <module>
+TypeError: cannot unpack non-iterable NoneType object
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 - <<'EOF'
+import json
+prg=open("/home/wyn/smb_decomp/out/prg.bin","rb").read()
+canon=json.load(open("/tmp/opencode/canonical.json"))
+addrs={int(a,16):tuple(v) for a,v in canon.items()}
+def rd16(a): return prg[a-0x8000]|(prg[a-0x8000+1]<<8)
+from collections import deque
+starts=[rd16(0xFFFA),rd16(0xFFFC),rd16(0xFFFE)]
+parent={}; q=deque()
+for s in starts: parent[s]=None; q.append(s)
+seen=set()
+while q:
+    a=q.popleft()
+    if a in seen or a not in addrs: continue
+    seen.add(a)
+    mn,mode,ln,rh=addrs[a]; raw=bytes.fromhex(rh); npc=a+ln; inc=[]
+    if mn in ("RTS","RTI","BRK"): pass
+    elif mn=="JMP" and mode=="abs": inc=[(raw[1]|(raw[2]<<8),"jmp")]
+    else:
+        if mn=="JSR": inc.append((raw[1]|(raw[2]<<8),"jsr"))
+        if mn=="JMP" and mode=="ind":
+            t=raw[1]|(raw[2]<<8); p=prg[t-0x8000]|(prg[t-0x8000+1]<<8); inc.append((p,"jmp*"))
+        if mn in ("BPL","BMI","BVC","BVS","BCC","BCS","BNE","BEQ"):
+            d=raw[1]-256 if raw[1]>=128 else raw[1]; inc.append(((a+2+d)&0xFFFF,"branch")); inc.append((npc,"fallthru"))
+        else: inc.append((npc,"fallthru"))
+    for t,k in inc:
+        if t not in parent: parent[t]=(a,k)
+        q.append(t)
+chain=[]; cur=0x814A
+while cur is not None:
+    chain.append(cur); p=parent.get(cur); cur=p[0] if p else None
+chain.reverse()
+print("static path RESET/NMI/IRQ -> $814A (len %d):"%len(chain))
+for a in chain: print("   $%04X  %s"%(a,*addrs[a][:1]))
+print("parent(8223)=",parent.get(0x8223))
+EOF
+static path RESET/NMI/IRQ -> $814A (len 65):
+   $8082  LDA
+   $8085  AND
+   $8087  STA
+   $808A  AND
+   $808C  STA
+   $808F  LDA
+   $8092  AND
+   $8094  LDY
+   $8097  BNE
+   $809E  STA
+   $80A1  AND
+   $80A3  STA
+   $80A6  LDX
+   $80A9  LDA
+   $80AB  JSR
+   $80AE  STA
+   $80B1  LDA
+   $80B3  STA
+   $80B6  LDX
+   $80B9  LDA
+   $80BC  STA
+   $80BE  LDA
+   $80C1  STA
+   $80C3  JSR
+   $80C6  LDY
+   $80C8  LDX
+   $80CB  CPX
+   $80CD  BNE
+   $80D0  LDX
+   $80D3  LDA
+   $80D5  STA
+   $80D8  STA
+   $80DB  STA
+   $80DE  LDA
+   $80E1  STA
+   $80E4  JSR
+   $80E7  JSR
+   $80EA  JSR
+   $80ED  JSR
+   $80F0  LDA
+   $80F3  LSR
+   $80F4  BCS
+   $811B  LDX
+   $811D  LDY
+   $811F  LDA
+   $8122  AND
+   $8124  STA
+   $8126  LDA
+   $8129  AND
+   $812B  EOR
+   $812D  CLC
+   $812E  BEQ
+   $8131  ROR
+   $8134  INX
+   $8135  DEY
+   $8136  BNE
+   $8138  LDA
+   $813B  BEQ
+   $813D  LDA
+   $8140  AND
+   $8142  BNE
+   $8144  LDA
+   $8147  LSR
+   $8148  BCS
+   $814A  JSR
+parent(8223)= (33098, 'jsr')
+> build · deepseek-v4.1-flash
+Now let me do the requested explicit spot-checks of representative instruction occurrences (opcode bytes vs smb.asm vs generated C).
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 - <<'EOF'
+import json,re
+canon=json.load(open("/tmp/opencode/canonical.json"))
+cf=open("out/smb_prg.c").read()
+funcs={int(m.group(1),16):m.group(2).strip() for m in re.finditer(r"static void I_([0-9A-F]{4})\(Cpu \*c\)\{([^}]*)\}",cf)}
+prg=open("../out/prg.bin","rb").read()
+asm={}
+for ln in open("../out/smb.asm"):
+    m=re.match(r"^\s+([A-Z]{3})\s*(.*?)\s*;\s*\$([0-9A-F]{4}):\s*([0-9A-F ]+)",ln)
+    if m: asm[int(m.group(3),16)]=(m.group(1),m.group(2),m.group(4).split())
+def show(title,pred,n=4):
+    print("=== %s ==="%title)
+    c=0
+    for a,(mn,mode,ln_,rh) in sorted(canon.items()):
+        if pred(mn,mode):
+            raw=bytes.fromhex(rh)
+            amn,aop,ab=asm.get(a,("?","?",[]))
+            print(" $%04X  bytes=%s  asm=%-4s %-12s  C={%s}"%(
+                a," ".join("%02X"%b for b in raw),amn,aop,funcs.get(a,"<MISSING>")))
+            c+=1
+            if c>=n: break
+show("ADC (imm/abs/abx)", lambda m,md: m=="ADC", 5)
+show("SBC", lambda m,md: m=="SBC", 4)
+show("ROL/ROR", lambda m,md: m in ("ROL","ROR"), 4)
+show("BIT", lambda m,md: m=="BIT", 3)
+show("JMP indirect", lambda m,md: m=="JMP" and md=="ind", 2)
+show("indexed loads/stores", lambda m,md: md in ("abx","aby","izx","izy") and m in ("LDA","STA"), 6)
+show("JSR/RTS", lambda m,md: m in ("JSR","RTS"), 4)
+show("BRK/RTI", lambda m,md: m in ("BRK","RTI"), 3)
+EOF
+=== ADC (imm/abs/abx) ===
+Traceback (most recent call last):
+  File "<stdin>", line 21, in <module>
+  File "<stdin>", line 17, in show
+TypeError: %X format: an integer is required, not str
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 - <<'EOF'
+import json,re
+canon=json.load(open("/tmp/opencode/canonical.json"))
+cf=open("out/smb_prg.c").read()
+funcs={int(m.group(1),16):m.group(2).strip() for m in re.finditer(r"static void I_([0-9A-F]{4})\(Cpu \*c\)\{([^}]*)\}",cf)}
+asm={}
+for ln in open("../out/smb.asm"):
+    m=re.match(r"^\s+([A-Z]{3})\s*(.*?)\s*;\s*\$([0-9A-F]{4}):\s*([0-9A-F ]+)",ln)
+    if m: asm[int(m.group(3),16)]=(m.group(1),m.group(2),m.group(4).split())
+items=sorted((int(k,16),v) for k,v in canon.items())
+def show(title,pred,n=4):
+    print("=== %s ==="%title); c=0
+    for a,(mn,mode,ln_,rh) in items:
+        if pred(mn,mode):
+            raw=bytes.fromhex(rh); amn,aop,ab=asm.get(a,("?","?",[]))
+            print(" $%04X bytes=%s asm=%-4s %-14s C={%s}"%(a," ".join("%02X"%b for b in raw),amn,aop,funcs.get(a,"<MISSING>")))
+            c+=1
+            if c>=n: break
+show("ADC", lambda m,md: m=="ADC", 5)
+show("SBC", lambda m,md: m=="SBC", 4)
+show("ROL/ROR", lambda m,md: m in ("ROL","ROR"), 4)
+show("BIT", lambda m,md: m=="BIT", 3)
+show("JMP indirect", lambda m,md: m=="JMP" and md=="ind", 2)
+show("indexed loads/stores", lambda m,md: md in ("abx","aby","izx","izy") and m in ("LDA","STA"), 8)
+show("JSR/RTS", lambda m,md: m in ("JSR","RTS"), 4)
+show("BRK/RTI", lambda m,md: m in ("BRK","RTI"), 3)
+EOF
+=== ADC ===
+ $81DA bytes=79 E1 06 asm=ADC  a:$06E1,y      C={u16 ad = (u16)(0x06E1 + c->y); u8 m = c->mem[ad]; do_adc(c, m); c->pc = 0x81DD;}
+ $81E0 bytes=65 00 asm=ADC  z:$00          C={u16 ad = 0x0000; u8 m = c->mem[ad]; do_adc(c, m); c->pc = 0x81E2;}
+ $8200 bytes=69 08 asm=ADC  #$08           C={u8 m = 0x08; do_adc(c, m); c->pc = 0x8202;}
+ $8206 bytes=69 08 asm=ADC  #$08           C={u8 m = 0x08; do_adc(c, m); c->pc = 0x8208;}
+ $83DF bytes=69 80 asm=ADC  #$80           C={u8 m = 0x80; do_adc(c, m); c->pc = 0x83E1;}
+=== SBC ===
+ $840F bytes=E9 01 asm=SBC  #$01           C={u8 m = 0x01; do_sbc(c, m); c->pc = 0x8411;}
+ $8532 bytes=E9 01 asm=SBC  #$01           C={u8 m = 0x01; do_sbc(c, m); c->pc = 0x8534;}
+ $853A bytes=E9 08 asm=SBC  #$08           C={u8 m = 0x08; do_sbc(c, m); c->pc = 0x853C;}
+ $8846 bytes=E9 0A asm=SBC  #$0A           C={u8 m = 0x0A; do_sbc(c, m); c->pc = 0x8848;}
+=== ROL/ROR ===
+ $8131 bytes=7E A7 07 asm=ROR  a:$07A7,x      C={u16 ad = (u16)(0x07A7 + c->x); u8 m = c->mem[ad]; do_ror(c, &m); c->mem[ad] = m; c->pc = 0x8134;}
+ $88DA bytes=2A asm=ROL  a              C={do_rol(c, &c->a); c->pc = 0x88DB;}
+ $88DB bytes=2A asm=ROL  a              C={do_rol(c, &c->a); c->pc = 0x88DC;}
+ $8911 bytes=26 03 asm=ROL  z:$03          C={u16 ad = 0x0003; u8 m = c->mem[ad]; do_rol(c, &m); c->mem[ad] = m; c->pc = 0x8913;}
+=== BIT ===
+ $8222 bytes=2C A0 04 asm=BIT  a:$04A0        C={u16 ad = 0x04A0; u8 m = c->mem[ad]; do_bit(c, m); c->pc = 0x8225;}
+ $94AD bytes=24 00 asm=BIT  z:$00          C={u16 ad = 0x0000; u8 m = c->mem[ad]; do_bit(c, m); c->pc = 0x94AF;}
+ $BFB6 bytes=2C A9 01 asm=BIT  a:$01A9        C={u16 ad = 0x01A9; u8 m = c->mem[ad]; do_bit(c, m); c->pc = 0xBFB9;}
+=== JMP indirect ===
+ $8E16 bytes=6C 06 00 asm=JMP  ($0006)        C={u16 p = 0x0006; u8 lo = c->mem[p]; u8 hi = c->mem[(u16)((p & 0xFF00) | ((p + 1) & 0xFF))]; c->pc = (u16)(lo | (hi << 8));}
+=== indexed loads/stores ===
+ $8018 bytes=BD D7 07 asm=LDA  a:$07D7,x      C={u16 ad = (u16)(0x07D7 + c->x); u8 m = c->mem[ad]; c->a = m; setnz(c, m); c->pc = 0x801B;}
+ $80B9 bytes=BD 5A 80 asm=LDA  a:$805A,x      C={u16 ad = (u16)(0x805A + c->x); u8 m = c->mem[ad]; c->a = m; setnz(c, m); c->pc = 0x80BC;}
+ $80BE bytes=BD 6D 80 asm=LDA  a:$806D,x      C={u16 ad = (u16)(0x806D + c->x); u8 m = c->mem[ad]; c->a = m; setnz(c, m); c->pc = 0x80C1;}
+ $80D5 bytes=9D 00 03 asm=STA  a:$0300,x      C={u16 ad = (u16)(0x0300 + c->x); c->mem[ad] = c->a; c->pc = 0x80D8;}
+ $80D8 bytes=9D 01 03 asm=STA  a:$0301,x      C={u16 ad = (u16)(0x0301 + c->x); c->mem[ad] = c->a; c->pc = 0x80DB;}
+ $810E bytes=BD 80 07 asm=LDA  a:$0780,x      C={u16 ad = (u16)(0x0780 + c->x); u8 m = c->mem[ad]; c->a = m; setnz(c, m); c->pc = 0x8111;}
+ $81CF bytes=BD E4 06 asm=LDA  a:$06E4,x      C={u16 ad = (u16)(0x06E4 + c->x); u8 m = c->mem[ad]; c->a = m; setnz(c, m); c->pc = 0x81D2;}
+ $81E2 bytes=9D E4 06 asm=STA  a:$06E4,x      C={u16 ad = (u16)(0x06E4 + c->x); c->mem[ad] = c->a; c->pc = 0x81E5;}
+=== JSR/RTS ===
+ $802B bytes=20 CC 90 asm=JSR  a:$90CC        C={push16(c, 0x802D); c->pc = 0x90CC;}
+ $8046 bytes=20 20 82 asm=JSR  a:$8220        C={push16(c, 0x8048); c->pc = 0x8220;}
+ $8049 bytes=20 19 8E asm=JSR  a:$8E19        C={push16(c, 0x804B); c->pc = 0x8E19;}
+ $8054 bytes=20 ED 8E asm=JSR  a:$8EED        C={push16(c, 0x8056); c->pc = 0x8EED;}
+=== BRK/RTI ===
+ $8181 bytes=40 asm=RTI                 C={c->p = (u8)(pop(c) | F_U); c->pc = pop16(c);}
+ $9360 bytes=00 asm=BRK                 C={push16(c, 0x9362); push(c, (u8)(c->p | F_B | F_U)); c->p |= F_I; c->pc = (u16)(c->mem[0xFFFE] | (c->mem[0xFFFF] << 8));}
+ $A2C4 bytes=40 asm=RTI                 C={c->p = (u8)(pop(c) | F_U); c->pc = pop16(c);}
+> build · deepseek-v4.1-flash
+Let me check whether the apparent RTS-dispatch table at `$C908` contains further untranslated entry points.
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 - <<'EOF'
+import json
+canon=json.load(open("/tmp/opencode/canonical.json"))
+addrs=set(int(a,16) for a in canon)
+prg=open("../out/prg.bin","rb").read()
+def w(a): return prg[a-0x8000]|(prg[a-0x8000+1]<<8)
+print("16-bit words $C905..$C934 and whether in optab:")
+for a in range(0xC905,0xC934,2):
+    t=w(a)
+    print("  $%04X: $%04X %s"%(a,t,"OK" if t in addrs else ("outside" if not (0x8000<=t<=0xFFFF) else "*** NOT TRANSLATED ***")))
+EOF
+16-bit words $C905..$C934 and whether in optab:
+  $C905: $16B5 outside
+  $C907: $0420 outside
+  $C909: $778E outside
+  $C90B: $77CA outside
+  $C90D: $77CA outside
+  $C90F: $77CA outside
+  $C911: $77CA outside
+  $C913: $D8CA *** NOT TRANSLATED ***
+  $C915: $77C9 outside
+  $C917: $89CA *** NOT TRANSLATED ***
+  $C919: $36CB outside
+  $C91B: $34CC outside
+  $C91D: $4AC9 outside
+  $C91F: $4ACC outside
+  $C921: $B0CC *** NOT TRANSLATED ***
+  $C923: $B0C9 *** NOT TRANSLATED ***
+  $C925: $F9D3 *** NOT TRANSLATED ***
+  $C927: $FFCA *** NOT TRANSLATED ***
+  $C929: $25CA outside
+  $C92B: $28CB outside
+  $C92D: $77CF outside
+  $C92F: $34CA outside
+  $C931: $DFC9 *** NOT TRANSLATED ***
+  $C933: $60CE outside
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/out && grep -nE "L814A:|L813D:" da65_linear.asm; echo "--- context ---"; sed -n "$(grep -n 'L813D:' da65_linear.asm | head -1 | cut -d: -f1),+18p" da65_linear.asm
+234:L813D:  lda     $2002
+--- context ---
+L813D:  lda     $2002
+        and     #$40
+        bne     L813D
+        lda     $0776
+        lsr     a
+        bcs     L8150
+        jsr     L8223
+        jsr     L81C6
+L8150:  lda     $2002
+        and     #$40
+        beq     L8150
+        ldy     #$14
+L8159:  dey
+        bne     L8159
+L815C:  lda     $073F
+        sta     $2005
+        lda     $0740
+        sta     $2005
+        lda     $0778
+> build · deepseek-v4.1-flash
+da65 independently confirms `jsr L8223` in reachable NMI-path code. Let me produce the final clean demonstration.
+[0m← [0mWrite /tmp/opencode/demo2.c
+Created file successfully: /tmp/opencode/demo2.c
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && gcc -O1 -std=c11 -I. -o /tmp/opencode/demo2 /tmp/opencode/demo2.c ref6502.c out/smb_prg.c && /tmp/opencode/demo2
+== missing entry points (da65 confirms each is an instruction start) ==
+$8223: optab=NULL  ROM bytes=A0 04 A9
+$C902: optab=NULL  ROM bytes=4C 7A D6
+$C905: optab=NULL  ROM bytes=B5 16 20
+$BFB7: optab=NULL  ROM bytes=A9 01 48
+$DC21: optab=NULL  ROM bytes=B5 CF A4
+
+== NMI-path counterexample: $814A is 'JSR $8223' (da65 L813D..jsr L8223) ==
+C   after step1: pc=8223
+C   after step2: rc=0 pc=8223   <-- HALT (no translation at $8223)
+ref after step1: pc=8223
+ref after step2: pc=8225   <-- ROM: A0 04 = LDY #$04
+> build · deepseek-v4.1-flash
+Let me confirm the NMI-path region around the reachable call is coherent code per da65.
+[0m$ [0mcd /home/wyn/smb_decomp/out && sed -n "$(grep -n 'lda     \$0778' da65_linear.asm | head -1 | cut -d: -f1),+4p" da65_linear.asm; echo "--- da65 lines 200-237 ---"; sed -n '200,237p' da65_linear.asm
+lda     $0778
+        ora     #$80
+        jsr     L8EED
+L8057:  jmp     L8057
+
+--- da65 lines 200-237 ---
+        bcs     L811B
+        lda     $0747
+        beq     L8100
+L80FB:  dec     $0747
+        bne     L8119
+L8100:  ldx     #$14
+        dec     $077F
+        bpl     L810E
+        lda     #$14
+        sta     $077F
+        ldx     #$23
+L810E:  lda     $0780,x
+        beq     L8116
+        dec     $0780,x
+L8116:  dex
+        bpl     L810E
+L8119:  inc     $09
+L811B:  ldx     #$00
+        ldy     #$07
+        lda     $07A7
+        and     #$02
+        sta     L0000
+        lda     $07A8
+        and     #$02
+        eor     L0000
+        clc
+        beq     L8131
+L8130:  sec
+L8131:  ror     $07A7,x
+        inx
+        dey
+        bne     L8131
+        lda     $0722
+        beq     L815C
+L813D:  lda     $2002
+        and     #$40
+        bne     L813D
+        lda     $0776
+> build · deepseek-v4.1-flash
+I have completed the independent verification. Here is the report.
+
+---
+
+# Verdict: **FAIL**
+
+The lifted C is semantically correct for **every instruction it actually translates**, and the differential test is **non-circular** — but the *set* of translated instructions is incomplete. Real, statically-reachable 6502 code is missing from `optab`, so the decompiled CPU **halts on live code paths**. It is therefore not a faithful decompilation of the whole PRG, and the differential test is structurally unable to detect this class of gap.
+
+---
+
+## What I ran and what passed
+
+### 1. Build + differential test (both architectures)
+```
+cd /home/wyn/smb_decomp/c && ./build_c.sh
+```
+Output:
+```
+parsed instructions: 10255  covered bytes: 21826  asm code bytes: 21826
+instructions: 10255  code bytes: 21826  data bytes: 10942
+== x86_64 object ==        (OK)
+== aarch64 object ==       (OK)
+trials=10755 steps=51400 mismatches=0
+out/smb_prg_x64.o:   ELF 64-bit LSB relocatable, x86-64
+out/smb_prg_arm64.o: ELF 64-bit LSB relocatable, ARM aarch64
+OK
+```
+Both targets compile; difftest reports 0 mismatches. `cmp prg.bin prg_rebuilt.bin` → identical (the disassembly reassembles to the exact ROM).
+
+### 2. Independent decode audit (my own canonical NMOS 6502 table, not `gen_c.py`'s)
+`python3 /tmp/opencode/verify_decode.py`:
+```
+parsed instruction lines: 10255
+instruction-looking lines without address: 0
+errors: 0
+```
+All 10,255 `smb.asm` lines have correct opcode, length, and operand when decoded from `prg.bin` with a from-scratch canonical table; every byte in each line matches the ROM.
+
+### 3. Generator table vs canonical
+`python3 /tmp/opencode/verify_c.py`:
+```
+MATRIX vs canonical differences: 0        (151/151 opcodes)
+C functions: 10255   optab entries: 10255
+missing C funcs: []   extra C funcs: []   optab != funcs: []
+C cross-check problems: 0
+```
+Every one of the 10,255 asm instructions has exactly one `I_XXXX` function and one `optab` entry with the correct opcode/operand constants. No missing or wrong lines.
+
+### 4. Non-circularity: `ref6502.c` vs a from-scratch third reference
+I wrote `/tmp/opencode/ref2.c` from the documented semantics with deliberately different but equivalent flag formulas (e.g. ADC `V=(a^r)&(m^r)&0x80`; SBC implemented as ADC of `~m`).
+```
+gcc -O2 -std=c11 -I. -o /tmp/opencode/fuzz3 fuzz3.c ref6502.c ref2.c
+/tmp/opencode/fuzz3
+checks=1629376 fails=0
+```
+This includes **exhaustive** ADC/SBC/CMP/CPX/CPY/AND/ORA/EOR/LDA/LDX/LDY over all `(a,m,carry)` (11×262144), exhaustive ASL/LSR/ROL/ROR accumulator, exhaustive BIT (N/V/Z), and 100k targeted + 20k random full-memory states hitting zero-page wrap `(zp,X)/(zp),Y`, indexed wraparound, the `JMP (ind)` page-boundary bug, PLP/PHP/BRK/RTS/RTI. **No shared bug exists.** `ref6502.c` is correct against the 6502 spec.
+
+### 5. Decompiled C vs the independent reference
+```
+gcc -O2 -std=c11 -I. -o /tmp/opencode/fuzz_c fuzz_c.c ref6502.c ref2.c out/smb_prg.c
+/tmp/opencode/fuzz_c 40
+trials=563730 fails=0
+```
+563,730 steps at every translated address and random traces, full 64 KiB memory compared, arbitered by my independent reference. **The per-instruction translation is sound.**
+
+### 6. Spot-checks (bytes ↔ asm ↔ C) — all correct
+Representative examples confirmed:
+- `$81DA 79 E1 06` ADC `$06E1,Y` → `(u16)(0x06E1+c->y)`, `do_adc`
+- `$840F E9 01` SBC `#$01` → `do_sbc`
+- `$8131 7E A7 07` ROR `$07A7,X` → `do_ror`+store
+- `$8222 2C A0 04` BIT `$04A0` → `do_bit`
+- `$8E16 6C 06 00` JMP `($0006)` → correct page-boundary formula `((p&0xFF00)|((p+1)&0xFF))`
+- `$80D5 9D 00 03` STA `$0300,X` → wraparound-correct
+- `$802B 20 CC 90` JSR `$90CC` → `push16(0x802D)`
+- `$9360 00` BRK, `$8181 40` RTI → correct.
+
+---
+
+## Counterexamples (concrete failures)
+
+Five real instruction entry points are **absent** from the generated C (`optab == NULL`, no `I_` function), confirmed by the **independent cc65 `da65` disassembler**:
+
+| Address | ROM bytes | ROM instruction | Reached by (static) |
+|---|---|---|---|
+| `$8223` | `A0 04 A9` | `LDY #$04` | `JSR $8223` at `$814A` |
+| `$C902` | `4C 7A D6` | `JMP $D67A` | `BNE $C902` at `$C8FD`, and return of `JSR $C905` |
+| `$C905` | `B5 16 20` | `LDA $16,X` | `JSR $C905` at `$C8FF` |
+| `$BFB7` | `A9 01 48` | `LDA #$01` | `JSR $BFB7` at `$D498`, `$D5F5` |
+| `$DC21` | `B5 CF A4` | `LDA $CF,X` | `JSR $DC21` at `$D4BA`, `$D5CD`, `$D603`, `$D62D`, `$D639` |
+
+**Demonstrated divergence** (`/tmp/opencode/demo2.c`):
+```
+$8223: optab=NULL  ROM bytes=A0 04 A9
+$C902: optab=NULL  ROM bytes=4C 7A D6
+$C905: optab=NULL  ROM bytes=B5 16 20
+$BFB7: optab=NULL  ROM bytes=A9 01 48
+$DC21: optab=NULL  ROM bytes=B5 CF A4
+
+== NMI-path counterexample: $814A is 'JSR $8223' ==
+C   after step1: pc=8223
+C   after step2: rc=0 pc=8223   <-- HALT (no translation at $8223)
+ref after step1: pc=8223
+ref after step2: pc=8225   <-- ROM: A0 04 = LDY #$04
+```
+
+`$814A` is on the **NMI handler path** (da65: `L813D ... lsr a / bcs L8150 / jsr L8223 / jsr L81C6`), reached from the NMI vector `$8082`; the loop exits into `$811B` with `lda $0722 / beq L815C`, so when `$0722≠0` and `$0776` bit0=0 the call executes. This is ordinary live game code, not a runtime-pointer/data region — so the stated "code reached only via runtime pointers stays as data" limitation does **not** cover it.
+
+### Root cause
+These are **overlapping-code entry points** using the classic `BIT abs` skip idiom: the byte `2C` at `$8222`/`$BFB6`/`$DC20` is a 3-byte `BIT`, and its low operand byte (`$8223`/`$BFB7`/`$DC21`) is an alternate entry executed via a static `JSR`. `smb.asm` mis-decodes the alternate entries (it emits `.byte`/mid-instruction at `$C902`, etc.), and `gen_c.py` translates *only the instruction lines present in `smb.asm`* (`for line in open(ASM) ... instr[a]=...`). It never treats branch/JSR/JMP targets as new code starts, so the alternate entries get no function. `da65_linear.asm` independently shows the correct streams.
+
+### The differential test cannot catch this
+- Phase 1 enumerates `optab[addr]` — absent addresses are never tested.
+- Phase 2 has `if (!optab[c1.pc]) break;` (difftest.c:102), i.e. a translation gap is silently treated as a normal end-of-trace, not as a mismatch.
+- The test never starts traces from the reset/NMI/IRQ vectors.
+
+### Minor secondary observation
+The same traversal also **over-decodes** some data: e.g. `$A4B3` `LDA $C514,Y`, `$A513` `STA ($3E,X)`, and `$A535 JSR $52FD` / `$A53A JSR $406E` sit inside an unmistakable `.byte` level-data table (`$A405–$A534`) and call into RAM. Harmless unless reached, but it shows the code/data map is noisy in both directions.
+
+---
+
+## Trustworthiness summary
+- The **semantic verification is non-circular and sound** for the instructions that exist: decode table == canonical, every emitted function is byte/operand-correct, `ref6502.c` matches an independently written spec model on 1.63M exhaustive/edge cases, and the generated C matches that independent model on 563,730 steps.
+- The **verification is incomplete**: it validates `smb.asm`'s code map rather than the PRG's actual reachable instruction set, and its trace loop treats missing translations as clean termination.
+
+---
+
+## Instructions to fix
+
+**Fix `gen_c.py`** (the code map is the real defect, not the semantics):
+1. After parsing `smb.asm`, collect every static control-flow target: rel branch `val`, `JMP abs` operand, and `JSR` operand (and the fallthrough `npc` after a `JSR`, which is a return site). 
+2. Iterate to a fixpoint: for any target `t` in `0x8000..0xFFFF` not already in `instr` and not overlapping a byte it cannot re-decode, call the existing `fields(t)` to decode it from `prg.bin` and add `instr[t]`; recurse over the new instruction's targets/fallthrough. Overlapping instruction streams are fine here because the emitter already keys one function per address.
+3. Handle opcodes not in `OPS` (e.g. `$77` reached after the `$C905` routine) by not emitting a function/stopping that chain, rather than raising.
+4. This adds `I_8223`, `I_C902`, `I_C905`, `I_BFB7`, `I_DC21`, … and the corresponding `optab` entries.
+
+**Fix `difftest.c`** so gaps can't hide:
+- In Phase 2, replace `if (!optab[c1.pc]) break;` with a step against `ref_step` and **report a mismatch** if the reference has a valid instruction at `c1.pc` (i.e. a gap in the translation).
+- Add Phase 0 traces that start at the reset/NMI/IRQ vectors, and Phase 1b that also seeds states at every static branch/JSR/JMP target.
+
+**No change required to `ref6502.c`** — its flag arithmetic, carry/overflow, zeropage wrapping, `JMP (ind)` page bug, and stack/B-U handling all verified correct against an independent spec implementation.

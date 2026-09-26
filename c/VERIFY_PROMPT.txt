@@ -1,0 +1,50 @@
+You are independently verifying a C decompilation of the Super Mario Bros.
+(World) NES PRG ROM. Be skeptical: do not trust README.md or this message.
+Verify from the raw artifacts yourself.
+
+Working directory: /home/wyn/smb_decomp/c
+
+Artifacts:
+- cpu.h        : the Cpu state (registers, flags, 64 KiB memory)
+- out/smb_prg.c: generated decompiled C (one function per 6502 instruction)
+- gen_c.py     : generator that produced out/smb_prg.c from ../out/smb.asm
+- ref6502.c    : the independent reference interpreter used by the diff test
+- difftest.c   : differential test (decompiled C vs ref6502.c)
+- build_c.sh   : builds x86-64 and aarch64 and runs the differential test
+- ../out/smb.asm      : the verified matching disassembly (source of truth)
+- ../out/prg.bin      : the original 32768-byte PRG ROM
+- ../out/ghidra_map.txt
+
+Your job: decide whether this is a faithful C decompilation of the PRG's
+instruction semantics, and whether the verification is trustworthy.
+
+Check, independently and adversarially:
+1. It compiles for BOTH x86-64 and aarch64. Run ./build_c.sh (uses host gcc for
+   x86-64 and Zig for aarch64; Zig may be at /tmp/opencode/zig/zig or on PATH).
+2. The differential test passes.
+3. Crucially: the DIFFERENTIAL TEST MAY BE CIRCULAR. Either (a) find shared
+   bugs in ref6502.c and out/smb_prg.c, or (b) demonstrate non-circularity by
+   checking the reference against the documented 6502 semantics. Verify the
+   reference's flag arithmetic against the 6502 spec yourself:
+   ADC/SBC carry and overflow, CMP/CPX/CPY, ASL/LSR/ROL/ROR, BIT (N/V/Z),
+   PLP/PHP (B/U bits), BRK, JMP indirect page-boundary bug, RTS/RTI, and the
+   zero-page wrap of (zp,X)/(zp),Y and indexed addressing.
+   You may write your own third reference (e.g. a from-scratch emulator or a
+   known-good one) and compare, if that helps.
+4. Spot-check the generated C for a representative sample of instruction
+   occurrences (include ADC, SBC, ROL/ROR, BIT, JMP indirect, indexed
+   loads/stores, JSR/RTS) against the opcode bytes at that address in
+   ../out/prg.bin and against ../out/smb.asm.
+5. Confirm every instruction line in ../out/smb.asm has a matching C function
+   with the correct opcode/operand, and report any missing or wrong ones.
+
+Report:
+- Verdict: PASS or FAIL.
+- Exact commands run and key output.
+- Any concrete counterexample (address, expected vs actual).
+- If FAIL: precise instructions to fix gen_c.py and/or ref6502.c.
+
+Known limitations you may confirm but should not treat as failures unless they
+affect faithful CPU semantics: NES PPU/APU/input hardware is not modelled;
+decimal mode (SED) is intentionally treated as binary; code reached only via
+runtime pointers stays as data.

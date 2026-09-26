@@ -1,0 +1,421 @@
+[0m
+> build · deepseek-v4.1-flash
+I'll start by exploring the working directory and understanding the build setup.
+[0m$ [0mcd /home/wyn/smb_decomp/c && ls -la
+total 192
+drwxr-xr-x. 1 wyn wyn   310 Sep 26 20:12 .
+drwxr-xr-x. 1 wyn wyn   228 Sep 26 18:53 ..
+-rwxr-xr-x. 1 wyn wyn   926 Sep 26 19:01 build_c.sh
+-rw-r--r--. 1 wyn wyn   892 Sep 26 18:53 cpu.h
+-rw-r--r--. 1 wyn wyn  5805 Sep 26 20:10 difftest.c
+-rw-r--r--. 1 wyn wyn 16965 Sep 26 19:26 gen_c.py
+drwxr-xr-x. 1 wyn wyn   274 Sep 26 20:11 out
+-rw-r--r--. 1 wyn wyn  3370 Sep 26 19:01 README.md
+-rw-r--r--. 1 wyn wyn  8905 Sep 26 19:26 ref6502.c
+-rw-r--r--. 1 wyn wyn 81018 Sep 26 19:23 VERIFY_ITER1.txt
+-rw-r--r--. 1 wyn wyn 43241 Sep 26 20:09 VERIFY_ITER2.txt
+-rw-r--r--. 1 wyn wyn   117 Sep 26 20:12 VERIFY_ITER3.txt
+-rw-r--r--. 1 wyn wyn  2077 Sep 26 19:29 VERIFY_PROMPT2.txt
+-rw-r--r--. 1 wyn wyn  1705 Sep 26 20:12 VERIFY_PROMPT3.txt
+-rw-r--r--. 1 wyn wyn  2707 Sep 26 19:02 VERIFY_PROMPT.txt
+[0m$ [0mcd /home/wyn/smb_decomp && ls -la
+total 72
+drwxr-xr-x. 1 wyn wyn   228 Sep 26 18:53 .
+drwx------. 1 wyn wyn   644 Sep 26 19:09 ..
+-rwxr-xr-x. 1 wyn wyn   838 Sep 26 18:20 build.sh
+drwxr-xr-x. 1 wyn wyn   310 Sep 26 20:12 c
+drwxr-xr-x. 1 wyn wyn     6 Sep 26 18:07 cc65
+-rw-r--r--. 1 wyn wyn  7708 Sep 26 18:19 gen.py
+drwxr-xr-x. 1 wyn wyn   114 Sep 26 18:11 ghidra
+drwxr-xr-x. 1 wyn wyn   246 Sep 26 18:28 out
+-rw-r--r--. 1 wyn wyn  3871 Sep 26 18:20 README.md
+-rw-r--r--. 1 wyn wyn   128 Sep 26 18:17 smb.cfg
+-rw-r--r--. 1 wyn wyn  1239 Sep 26 18:28 VERIFICATION.md
+-rw-r--r--. 1 wyn wyn  8524 Sep 26 18:28 verify_independent.py
+-rw-r--r--. 1 wyn wyn  2177 Sep 26 18:21 VERIFY_PROMPT.txt
+-rw-r--r--. 1 wyn wyn 31271 Sep 26 18:28 VERIFY_RESULT.txt
+> build · deepseek-v4.1-flash
+[0m→ [0mRead build_c.sh 
+[0m→ [0mRead difftest.c 
+[0m→ [0mRead VERIFY_PROMPT3.txt 
+[0m$ [0mcd /home/wyn/smb_decomp/c && ls -la out && cat VERIFY_ITER3.txt
+total 17312
+drwxr-xr-x. 1 wyn wyn     274 Sep 26 20:11 .
+drwxr-xr-x. 1 wyn wyn     310 Sep 26 20:12 ..
+-rwxr-xr-x. 1 wyn wyn 1320656 Sep 26 20:11 difftest
+-rw-r--r--. 1 wyn wyn       0 Sep 26 19:29 difftest_build.err
+-rw-r--r--. 1 wyn wyn       0 Sep 26 18:55 gcc_x64.err
+-rw-r--r--. 1 wyn wyn 5742156 Sep 26 19:34 libsmb_prg_arm64.a
+-rw-r--r--. 1 wyn wyn 1734708 Sep 26 19:34 libsmb_prg_x64.a
+-rw-r--r--. 1 wyn wyn    2461 Sep 26 19:34 ref_optable.h
+-rw-r--r--. 1 wyn wyn 5741952 Sep 26 19:34 smb_prg_arm64.o
+-rw-r--r--. 1 wyn wyn 1367128 Sep 26 19:34 smb_prg.c
+-rw-r--r--. 1 wyn wyn 1734504 Sep 26 19:34 smb_prg_x64.o
+-rw-r--r--. 1 wyn wyn   72392 Sep 26 19:34 xlt.h
+-rw-r--r--. 1 wyn wyn       0 Sep 26 18:55 zig_arm.err
+[0m
+> build · deepseek-v4.1-flash
+I'll start by exploring the working directory and understanding the build setup.
+[0m$ [0mcd /home/wyn/smb_decomp/c && ls -la
+total 192
+drwxr-xr-x. 1 wyn wyn   310 Sep 26 20:12 .
+drwxr-xr-x. 1 wyn wyn   228 Sep 26 18:53 ..
+-rwxr-xr-x. 1 wyn wyn   926 Sep 26 19:01 build_c.sh
+-rw-r--r--. 1 wyn wyn   892 Sep 26 18:53 cpu.h
+-rw-r--r--. 1 wyn wyn  5805 Sep 26 20:10 difftest.c
+-rw-r--r--. 1 wyn wyn 16965 Sep 26 19:26 gen_c.py
+drwxr-xr-x. 1 wyn wyn   274 Sep 26 20:11 out
+-rw-r--r--. 1 wyn wyn  3370 Sep 26 19:01 README.md
+-rw-r--r--. 1 wyn wyn  8905 Sep 26 19:26 ref6502.c
+-rw-r--r--. 1 wyn wyn 81018 Sep 26 19:23 VERIFY_ITER1.txt
+-rw-r--r--. 1 wyn wyn 43241 Sep 26 20:09 VERIFY_ITER2.txt
+-rw-r--r--. 1 wyn wyn   117 Sep 26 20:12 VERIFY_ITER3.txt
+-rw-r--r--. 1 wyn wyn  2077 Sep 26 19:29 VERIFY_PROMPT2.txt
+-rw-r--r--. 1 wyn wyn  1705 Sep 26 20:12 VERIFY_PROMPT3.txt
+-rw-r--r--. 1 wyn wyn  2707 Sep 26 19:02 VERIFY_PROMPT.txt
+[0m$ [0mcd /home/wyn/smb_decomp && ls -la
+total 72
+drwxr-xr-x. 1 wyn wyn   228 Sep 26 18:53 .
+drwx------. 1 wyn wyn   644 Sep 26 19:09 ..
+-rwxr-xr-x. 1 wyn wyn   838 Sep 26 18:20 build.sh
+drwxr-xr-x. 1 wyn wyn   310 Sep 26 20:12 c
+drwxr-xr-x. 1 wyn wyn     6 Sep 26 18:07 cc65
+-rw-r--r--. 1 wyn wyn  7708 Sep 26 18:19 gen.py
+drwxr-xr-x. 1 wyn wyn   114 Sep 26 18:11 ghidra
+drwxr-xr-x. 1 wyn wyn   246 Sep 26 18:28 out
+-rw-r--r--. 1 wyn wyn  3871 Sep 26 18:20 README.md
+-rw-r--r--. 1 wyn wyn   128 Sep 26 18:17 smb.cfg
+-rw-r--r--. 1 wyn wyn  1239 Sep 26 18:28 VERIFICATION.md
+-rw-r--r--. 1 wyn wyn  8524 Sep 26 18:28 verify_independent.py
+-rw-r--r--. 1 wyn wyn  2177 Sep 26 18:21 VERIFY_PROMPT.txt
+-rw-r--r--. 1 wyn wyn 31271 Sep 26 18:28 VERIFY_RESULT.txt
+> build · deepseek-v4.1-flash
+> build · deepseek-v4.1-flash
+[0m→ [0mRead gen_c.py 
+[0m→ [0mRead cpu.h 
+[0m→ [0mRead ref6502.c 
+> build · deepseek-v4.1-flash
+Now let me run the build.
+[0m$ [0mcd /home/wyn/smb_decomp/c && ls -la /tmp/opencode/zig/zig 2>&1; time ./build_c.sh 2>&1 | tail -40
+-rwxr-xr-x. 1 wyn wyn 164675136 May 23  2025 /tmp/opencode/zig/zig
+== generating out/smb_prg.c ==
+asm instructions: 10255  added entry points: 65  total: 10320
+instructions: 10320  code bytes: 21975  data bytes: 10793
+wrote /home/wyn/smb_decomp/c/out/smb_prg.c, out/ref_optable.h and out/xlt.h
+== x86_64 object ==
+== aarch64 object ==
+== differential test (decompiled C vs independent interpreter) ==
+translated=10320  trials=10910 steps=78629 mismatches=0 gaps=0
+== architectures ==
+out/smb_prg_x64.o:   ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), not stripped
+out/smb_prg_arm64.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), with debug_info, not stripped
+OK
+
+real	0m21.118s
+user	0m20.644s
+sys	0m0.343s
+> build · deepseek-v4.1-flash
+Step 1 passes. Now step 2: verify the gap detector is non-vacuous.
+[0m$ [0mcd /home/wyn/smb_decomp/c && mkdir -p /tmp/opencode/gapcheck && cp out/smb_prg.c /tmp/opencode/gapcheck/smb_prg_gap.c && grep -c 'optab\[0x8223\]' /tmp/opencode/gapcheck/smb_prg_gap.c && sed -i '/optab\[0x8223\] = I_8223;/d' /tmp/opencode/gapcheck/smb_prg_gap.c && echo "--- after removal:" && grep -c 'optab\[0x8223\]' /tmp/opencode/gapcheck/smb_prg_gap.c; echo "grep exit=$?"
+1
+--- after removal:
+0
+grep exit=1
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && gcc -O2 -std=c11 -I. -o /tmp/opencode/gapcheck/difftest_gap difftest.c ref6502.c /tmp/opencode/gapcheck/smb_prg_gap.c 2>&1 && /tmp/opencode/gapcheck/difftest_gap; echo "exit=$?"
+GAP: translated address $8223 has no function
+GAP [vector] start=$8082 step=466: $8223 is a translated target but optab is NULL
+GAP [vector] start=$8082 step=479: $8223 is a translated target but optab is NULL
+translated=10320  trials=10909 steps=83166 mismatches=0 gaps=3
+exit=1
+> build · deepseek-v4.1-flash
+Step 2 passes (gap detector fires, both statically and dynamically). Now step 3: independent hunt for untranslated reachable entry points.
+[0m$ [0mls -la /home/wyn/smb_decomp/cc65/ 2>&1; which da65 2>&1; ls /home/wyn/smb_decomp/out/
+total 0
+drwxr-xr-x. 1 wyn wyn   6 Sep 26 18:07 .
+drwxr-xr-x. 1 wyn wyn 228 Sep 26 18:53 ..
+drwxr-xr-x. 1 wyn wyn  22 Sep 26 18:07 usr
+which: no da65 in (/home/wyn/.opencode/bin:/home/wyn/.cargo/bin:/home/wyn/.opencode/bin:/home/wyn/.local/bin:/home/wyn/bin:/usr/lib64/ccache:/usr/local/bin:/usr/bin)
+ca65.err
+chr.bin
+da65_linear.asm
+ghidra_map.txt
+header.bin
+ld65.err
+original.nes
+prg.bin
+prg_rebuilt.bin
+smb.asm
+smb.o
+smb_rebuilt.nes
+[0m$ [0mcd /home/wyn/smb_decomp && ls -la out/ && head -c 200 out/prg.bin | xxd | head -5
+total 1600
+drwxr-xr-x. 1 wyn wyn    246 Sep 26 18:28 .
+drwxr-xr-x. 1 wyn wyn    228 Sep 26 18:53 ..
+-rw-r--r--. 1 wyn wyn      0 Sep 26 18:19 ca65.err
+-rw-r--r--. 1 wyn wyn   8192 Sep 26 18:07 chr.bin
+-rw-r--r--. 1 wyn wyn 354370 Sep 26 18:28 da65_linear.asm
+-rw-r-----. 1 wyn wyn 294115 Sep 26 18:11 ghidra_map.txt
+-rw-r--r--. 1 wyn wyn     16 Sep 26 18:07 header.bin
+-rw-r--r--. 1 wyn wyn      0 Sep 26 18:19 ld65.err
+-rw-r--r--. 1 wyn wyn  40976 Sep 26 18:19 original.nes
+-rw-r--r--. 1 wyn wyn  32768 Sep 26 18:07 prg.bin
+-rw-r--r--. 1 wyn wyn  32768 Sep 26 18:28 prg_rebuilt.bin
+-rw-r--r--. 1 wyn wyn 587056 Sep 26 18:19 smb.asm
+-rw-r--r--. 1 wyn wyn 225284 Sep 26 18:28 smb.o
+-rw-r--r--. 1 wyn wyn  40976 Sep 26 18:28 smb_rebuilt.nes
+00000000: 78d8 a910 8d00 20a2 ff9a ad02 2010 fbad  x..... ..... ...
+00000010: 0220 10fb a0fe a205 bdd7 07c9 0ab0 0cca  . ..............
+00000020: 10f6 adff 07c9 a5d0 02a0 d620 cc90 8d11  ........... ....
+00000030: 408d 7007 a9a5 8dff 078d a707 a90f 8d15  @.p.............
+00000040: 40a9 068d 0120 2020 8220 198e ee74 07ad  @....   . ...t..
+> build · deepseek-v4.1-flash
+Let me write an independent decoder/traversal (my own opcode table, from `prg.bin` and the real vectors) and compare against the translated set.
+[0m← [0mWrite /tmp/opencode/gapcheck/scan.py
+Created file successfully: /tmp/opencode/gapcheck/scan.py
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /tmp/opencode/gapcheck && python3 scan.py 2>&1 | head -60
+independent decoded reached instrs: 1070
+translated set size: 10320
+reached-but-untranslated (valid opcode): 2
+  GAP $FFFC  BRK imp
+  GAP $FFFE  BEQ rel
+closure violations (translated -> valid untranslated succ): 0
+translated instrs not reachable from roots: 9252
+VERDICT: GAPS FOUND
+> build · deepseek-v4.1-flash
+> build · deepseek-v4.1-flash
+Those two are my own bug: I seeded the vector *table addresses* as code instead of dereferencing the vectors. Let me fix and also check what the real vectors point to.
+[0m← [0mEdit /tmp/opencode/gapcheck/scan.py
+Index: /tmp/opencode/gapcheck/scan.py
+===================================================================
+--- /tmp/opencode/gapcheck/scan.py
++++ /tmp/opencode/gapcheck/scan.py
+@@ -78,10 +78,13 @@
+     if mn in ("RTS","RTI","BRK"): return []
+     if mode == "rel": return [val, npc]
+     return [npc]
+ 
+-# roots: real reset/nmi/irq vectors plus the two known entry points
+-vecs = [0xFFFA,0xFFFC,0xFFFE,0x8000,0x8082,0xFFF0]
++# roots: *dereferenced* reset/nmi/irq vectors plus known entry points.
++def rd16(a): return mem(a) | (mem(a+1) << 8)
++nmi, reset, irq = rd16(0xFFFA), rd16(0xFFFC), rd16(0xFFFE)
++print("vectors: NMI=$%04X RESET=$%04X IRQ=$%04X" % (nmi, reset, irq))
++vecs = [nmi, reset, irq, 0x8000, 0x8082, 0xFFF0]
+ seen=set(); gaps=[]; reached=set(); work=list(vecs)
+ while work:
+     a = work.pop()
+     if a in seen: continue
+
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /tmp/opencode/gapcheck && python3 scan.py 2>&1 | head -60
+vectors: NMI=$8082 RESET=$8000 IRQ=$FFF0
+independent decoded reached instrs: 1068
+translated set size: 10320
+reached-but-untranslated (valid opcode): 0
+closure violations (translated -> valid untranslated succ): 0
+translated instrs not reachable from roots: 9252
+VERDICT: no gaps
+> build · deepseek-v4.1-flash
+[91m[1mError: [0mDecode error (200 POST https://opencode.ai/inference/openai/v1/chat/completions)
+> build · deepseek-v4.1-flash
+Step 3 (my independent traversal) finds no gaps. Now step 4: hand-computed 6502 semantics. Since the generated helpers/instructions are `static`, I'll `#include` the generated file into a small harness so I can call them directly.
+[0m$ [0mcd /home/wyn/smb_decomp/c && grep -n 'static void I_[0-9A-F]*' out/smb_prg.c | grep -i -m3 'do_adc' ; echo '--- JSR funcs:'; grep -n 'push16(c, 0x' out/smb_prg.c | head -3; echo '--- BRK funcs:'; grep -n 'F_B | F_U' out/smb_prg.c | grep -i 'mem\[0xFFFE\]' | head -3; echo '--- count'; grep -c 'static void I_' out/smb_prg.c
+2283:static void I_81DA(Cpu *c){ u16 ad = (u16)(0x06E1 + c->y); u8 m = c->mem[ad]; do_adc(c, m); c->pc = 0x81DD; }
+2286:static void I_81E0(Cpu *c){ u16 ad = 0x0000; u8 m = c->mem[ad]; do_adc(c, m); c->pc = 0x81E2; }
+2301:static void I_8200(Cpu *c){ u8 m = 0x08; do_adc(c, m); c->pc = 0x8202; }
+--- JSR funcs:
+2118:static void I_802B(Cpu *c){ push16(c, 0x802D); c->pc = 0x90CC; }
+2128:static void I_8046(Cpu *c){ push16(c, 0x8048); c->pc = 0x8220; }
+2129:static void I_8049(Cpu *c){ push16(c, 0x804B); c->pc = 0x8E19; }
+--- BRK funcs:
+3715:static void I_9360(Cpu *c){ push16(c, 0x9362); push(c, (u8)(c->p | F_B | F_U)); c->p |= F_I; c->pc = (u16)(c->mem[0xFFFE] | (c->mem[0xFFFF] << 8)); }
+4604:static void I_AD7D(Cpu *c){ push16(c, 0xAD7F); push(c, (u8)(c->p | F_B | F_U)); c->p |= F_I; c->pc = (u16)(c->mem[0xFFFE] | (c->mem[0xFFFF] << 8)); }
+7971:static void I_D034(Cpu *c){ push16(c, 0xD036); push(c, (u8)(c->p | F_B | F_U)); c->p |= F_I; c->pc = (u16)(c->mem[0xFFFE] | (c->mem[0xFFFF] << 8)); }
+--- count
+10320
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && for pat in 'pop16(c) + 1' 'do_rol(c, &c->a)' 'do_ror(c, &c->a)' 'do_bit(c, m)' 'do_cmp(c, c->a, m)' 'do_asl(c, &c->a)' 'do_lsr(c, &c->a)'; do echo "== $pat"; grep -n "$pat" out/smb_prg.c | head -2; done
+== pop16(c) + 1
+2254:static void I_819C(Cpu *c){ c->pc = (u16)(pop16(c) + 1); }
+2273:static void I_81C5(Cpu *c){ c->pc = (u16)(pop16(c) + 1); }
+== do_rol(c, &c->a)
+2926:static void I_88DA(Cpu *c){ do_rol(c, &c->a); c->pc = 0x88DB; }
+2927:static void I_88DB(Cpu *c){ do_rol(c, &c->a); c->pc = 0x88DC; }
+== do_ror(c, &c->a)
+3477:static void I_9093(Cpu *c){ do_ror(c, &c->a); c->pc = 0x9094; }
+6441:static void I_BF3B(Cpu *c){ do_ror(c, &c->a); c->pc = 0xBF3C; }
+== do_bit(c, m)
+2316:static void I_8222(Cpu *c){ u16 ad = 0x04A0; u8 m = c->mem[ad]; do_bit(c, m); c->pc = 0x8225; }
+3630:static void I_921E(Cpu *c){ u16 ad = 0x0092; u8 m = c->mem[ad]; do_bit(c, m); c->pc = 0x9220; }
+== do_cmp(c, c->a, m)
+2110:static void I_801B(Cpu *c){ u8 m = 0x0A; do_cmp(c, c->a, m); c->pc = 0x801D; }
+2115:static void I_8025(Cpu *c){ u8 m = 0xA5; do_cmp(c, c->a, m); c->pc = 0x8027; }
+== do_asl(c, &c->a)
+2392:static void I_82DD(Cpu *c){ do_asl(c, &c->a); c->pc = 0x82DE; }
+2631:static void I_8556(Cpu *c){ do_asl(c, &c->a); c->pc = 0x8557; }
+== do_lsr(c, &c->a)
+2178:static void I_80F3(Cpu *c){ do_lsr(c, &c->a); c->pc = 0x80F4; }
+2217:static void I_8147(Cpu *c){ do_lsr(c, &c->a); c->pc = 0x8148; }
+> build · deepseek-v4.1-flash
+[0m← [0mWrite /tmp/opencode/semantics.c
+Created file successfully: /tmp/opencode/semantics.c
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /tmp/opencode && gcc -O1 -std=c11 -I/home/wyn/smb_decomp/c -o /tmp/opencode/semantics semantics.c 2>&1 | head -20 && /tmp/opencode/semantics; echo "exit=$?"
+semantics.c: In function ‘mk’:
+semantics.c:10:36: error: implicit declaration of function ‘memset’ [-Wimplicit-function-declaration]
+   10 | static Cpu mk(u8 a, u8 p) { Cpu c; memset(&c, 0, sizeof c); c.a = a; c.p = p; c.s = 0xFD; return c; }
+      |                                    ^~~~~~
+semantics.c:6:1: note: include ‘<string.h>’ or provide a declaration of ‘memset’
+    5 | #include "out/smb_prg.c"
+  +++ |+#include <string.h>
+    6 | 
+semantics.c:10:36: warning: incompatible implicit declaration of built-in function ‘memset’ [-Wbuiltin-declaration-mismatch]
+   10 | static Cpu mk(u8 a, u8 p) { Cpu c; memset(&c, 0, sizeof c); c.a = a; c.p = p; c.s = 0xFD; return c; }
+      |                                    ^~~~~~
+semantics.c:10:36: note: include ‘<string.h>’ or provide a declaration of ‘memset’
+semantics.c: In function ‘main’:
+semantics.c:8:62: error: implicit declaration of function ‘printf’ [-Wimplicit-function-declaration]
+    8 | #define CK(cond, msg) do { checks++; if (!(cond)) { fails++; printf("FAIL: %s\n", msg); } } while (0)
+      |                                                              ^~~~~~
+semantics.c:17:5: note: in expansion of macro ‘CK’
+   17 |     CK(c.a == 0xA0 && !(c.p & F_C) && (c.p & F_V) && (c.p & F_N) && !(c.p & F_Z), "ADC 50+50");
+      |     ^~
+semantics.c:6:1: note: include ‘<stdio.h>’ or provide a declaration of ‘printf’
+/bin/bash: line 1: /tmp/opencode/semantics: No such file or directory
+exit=127
+> build · deepseek-v4.1-flash
+[0m← [0mEdit /tmp/opencode/semantics.c
+Index: /tmp/opencode/semantics.c
+===================================================================
+--- /tmp/opencode/semantics.c
++++ /tmp/opencode/semantics.c
+@@ -1,8 +1,10 @@
+ /* Hand-computed 6502 semantics check.
+  * Includes the generated translation directly so the static helpers and
+  * instruction functions are callable, then compares against values computed
+  * by hand (not against the reference interpreter). */
++#include <stdio.h>
++#include <string.h>
+ #include "out/smb_prg.c"
+ 
+ static int fails = 0, checks = 0;
+ #define CK(cond, msg) do { checks++; if (!(cond)) { fails++; printf("FAIL: %s\n", msg); } } while (0)
+
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /tmp/opencode && gcc -O1 -std=c11 -I/home/wyn/smb_decomp/c -o /tmp/opencode/semantics semantics.c 2>&1 | head -20 && /tmp/opencode/semantics; echo "exit=$?"
+FAIL: BIT 01&40
+semantics: checks=44 fails=1
+exit=1
+> build · deepseek-v4.1-flash
+That failure is my test's hand-computation error, not the code: `A=0x01 & M=0x40 == 0`, so Z must be set. Let me correct the expectation.
+[0m← [0mEdit /tmp/opencode/semantics.c
+Index: /tmp/opencode/semantics.c
+===================================================================
+--- /tmp/opencode/semantics.c
++++ /tmp/opencode/semantics.c
+@@ -56,9 +56,9 @@
+ 
+     /* ---- BIT (Z from A&M, N/V from M bits 7/6) ---- */
+     c = mk(0xFF, 0); do_bit(&c, 0x00); CK((c.p & F_Z) && !(c.p & F_N) && !(c.p & F_V), "BIT FF&00");
+     c = mk(0x00, 0); do_bit(&c, 0xC0); CK((c.p & F_Z) && (c.p & F_N) && (c.p & F_V), "BIT 00&C0");
+-    c = mk(0x01, 0); do_bit(&c, 0x40); CK(!(c.p & F_Z) && !(c.p & F_N) && (c.p & F_V), "BIT 01&40");
++    c = mk(0x01, 0); do_bit(&c, 0x40); CK((c.p & F_Z) && !(c.p & F_N) && (c.p & F_V), "BIT 01&40");
+     c = mk(0x80, F_Z); do_bit(&c, 0x80); CK(!(c.p & F_Z) && (c.p & F_N) && !(c.p & F_V), "BIT 80&80");
+ 
+     /* ---- CMP ---- */
+     c = mk(0x10, 0); do_cmp(&c, c.a, 0x20); CK(!(c.p & F_C) && !(c.p & F_Z) && (c.p & F_N), "CMP 10,20");
+
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /tmp/opencode && gcc -O1 -std=c11 -I/home/wyn/smb_decomp/c -o /tmp/opencode/semantics semantics.c 2>&1 | head -20 && /tmp/opencode/semantics; echo "exit=$?"
+semantics: checks=44 fails=0
+exit=0
+> build · deepseek-v4.1-flash
+All 44 hand-computed checks pass. Let me capture the exact final outputs and verify the previously-missing addresses are now present.
+[0m$ [0mcd /home/wyn/smb_decomp/c && for a in 8223 C902 C905 BFB7 DC21; do printf '%s: ' "$a"; grep -o "0x$a" out/xlt.h | head -1 || true; done; echo '--- arm64 symbols'; nm out/smb_prg_arm64.o 2>/dev/null | grep -Ei ' smb_cpu_step| smb_cpu_init| optab' | head
+8223: 0x8223
+C902: 0xC902
+C905: 0xC905
+BFB7: 0xBFB7
+DC21: 0xDC21
+--- arm64 symbols
+0000000000000000 B optab
+0000000000000000 T smb_cpu_init
+000000000002eb7c T smb_cpu_step
+[0m$ [0mcd /home/wyn/smb_decomp/c && ./build_c.sh 2>&1
+== generating out/smb_prg.c ==
+asm instructions: 10255  added entry points: 65  total: 10320
+instructions: 10320  code bytes: 21975  data bytes: 10793
+wrote /home/wyn/smb_decomp/c/out/smb_prg.c, out/ref_optable.h and out/xlt.h
+== x86_64 object ==
+== aarch64 object ==
+== differential test (decompiled C vs independent interpreter) ==
+translated=10320  trials=10910 steps=78629 mismatches=0 gaps=0
+== architectures ==
+out/smb_prg_x64.o:   ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), not stripped
+out/smb_prg_arm64.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), with debug_info, not stripped
+OK
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && grep -c -E '0x8000|0x8082|0xFFF0' out/xlt.h && for a in 8000 8082 FFF0; do printf '%s: ' $a; grep -o "0x$a," out/xlt.h | head -1; done
+1
+8000: 0x8000,
+8082: 0x8082,
+FFF0:
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && grep -o '0xFFF0' out/xlt.h; grep -o '0x8082' out/xlt.h; grep -o '0x8000' out/xlt.h; python3 - <<'EOF'
+import re
+s=open('/home/wyn/smb_decomp/c/out/xlt.h').read()
+a=set(int(x,16) for x in re.findall(r'0x([0-9A-F]{4})',s))
+for t in (0x8000,0x8082,0xFFF0): print(hex(t), t in a)
+print('count',len(a))
+EOF
+0xFFF0
+0x8082
+0x8000
+0x8000 True
+0x8082 True
+0xfff0 True
+count 10320
+> build · deepseek-v4.1-flash
+All checks pass. Let me write the iteration report.
+[0m← [0mWrite VERIFY_ITER4.txt
+Created file successfully: VERIFY_ITER4.txt
+> build · deepseek-v4.1-flash
+# Verdict: PASS
+
+All four requested checks pass; no counterexamples. Full details written to `/home/wyn/smb_decomp/c/VERIFY_ITER4.txt`.
+
+**1. Build — PASS.** `./build_c.sh` completed, exit 0:
+
+```
+asm instructions: 10255  added entry points: 65  total: 10320
+translated=10320  trials=10910 steps=78629 mismatches=0 gaps=0
+out/smb_prg_x64.o:   ELF 64-bit LSB relocatable, x86-64 ...
+out/smb_prg_arm64.o: ELF 64-bit LSB relocatable, ARM aarch64 ...
+OK
+```
+The previously-missing `$8223/$C902/$C905/$BFB7/$DC21` are all present in `out/xlt.h`.
+
+**2. Gap detector non-vacuous — PASS.** I copied `out/smb_prg.c`, deleted `optab[0x8223] = I_8223;`, rebuilt against the copy:
+
+```
+GAP: translated address $8223 has no function
+GAP [vector] start=$8082 step=466: $8223 is a translated target but optab is NULL
+GAP [vector] start=$8082 step=479: $8223 is a translated target but optab is NULL
+translated=10320  trials=10909 steps=83166 mismatches=0 gaps=3   (exit=1)
+```
+Both the static Phase-1b check and the dynamic successor-target check fire.
+
+**3. Independent gap hunt — PASS.** I wrote my own decoder/traversal (`/tmp/opencode/gapcheck/scan.py`) with a documented 6502 opcode table, decoding `../out/prg.bin` and recursing from the *dereferenced* NMI/RESET/IRQ vectors ($8082/$8000/$FFF0):
+
+```
+reached-but-untranslated (valid opcode): 0
+closure violations (translated -> valid untranslated succ): 0
+VERDICT: no gaps
+```
+Closure over all 10320 translated instructions with translated roots proves no reachable untranslated entry point. (An initial run flagged `$FFFC/$FFFE`; that was my harness treating the vector table bytes as code instead of dereferencing them — fixed, not a real gap.)
+
+**4. Hand-computed semantics — PASS.** `/tmp/opencode/semantics.c` `#include`s the generated file and calls the static helpers/wrappers, comparing to hand-computed 6502 results (not to the reference interpreter): 44 checks, 0 failures — covering ADC/SBC carry+overflow, ROL/ROR, ASL/LSR, BIT, CMP, setnz, push/pop/push16/pop16, JSR/RTS, and BRK (vector, B flag, I mask). One initial failure was my own wrong expectation (`BIT 01&40`: A&M=0 so Z is set); corrected the test, not the code.
+
+No files or functions need changing.

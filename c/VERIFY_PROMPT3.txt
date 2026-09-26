@@ -1,0 +1,31 @@
+You are re-verifying the decompiled C. Be concise and time-boxed: do NOT write
+large test suites. Prioritise the checks below, then give a clear verdict.
+
+Working dir: /home/wyn/smb_decomp/c
+
+Fixes applied since last run:
+- gen_c.py expands the code map with all static control-flow targets
+  (translated set = 10320); the previously missing $8223/$C902/$C905/$BFB7/$DC21
+  are now translated.
+- difftest.c gap detection no longer flags RAM targets below $8000 (a successor
+  is only a required translation if it is in $8000-$FFFF and holds a valid
+  opcode). It also fully verifies against the independent interpreter.
+
+Do these, then stop and report:
+1. Run ./build_c.sh. Confirm x86-64 and aarch64 build and the test reports
+   `mismatches=0 gaps=0`.
+2. Confirm the gap detector is non-vacuous: make a temp copy of out/smb_prg.c
+   with one `optab[0xNNNN] = I_NNNN;` line removed, rebuild the test against the
+   copy, and confirm it reports a GAP. (There is already a passing example at
+   /tmp/opencode/difftest_gapbug from a prior run, but reproduce it yourself.)
+3. Briefly hunt for remaining reachable-but-untranslated entry points using
+   your own method (e.g. recursive traversal of targets in ../out/prg.bin, or
+   cc65 da65 streams). Only a valid 6502 instruction in $8000-$FFFF reached by
+   a static branch/JSR/JMP counts as a gap. Report any you find with address and
+   source.
+4. Sanity-check a handful of instruction semantics against hand-computed 6502
+   results (ADC/SBC carry+overflow, ROL/ROR, BIT, CMP, JSR/RTS, BRK), not just
+   C-vs-reference agreement.
+
+Report: PASS or FAIL, the exact key command output, any counterexample, and if
+FAIL the precise files/functions to change.

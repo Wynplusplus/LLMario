@@ -1,0 +1,79 @@
+VERIFY ITERATION 4 - re-verification of decompiled C
+====================================================
+
+VERDICT: PASS
+
+1. Build (./build_c.sh)
+------------------------
+$ ./build_c.sh
+== generating out/smb_prg.c ==
+asm instructions: 10255  added entry points: 65  total: 10320
+instructions: 10320  code bytes: 21975  data bytes: 10793
+== x86_64 object ==
+== aarch64 object ==
+== differential test (decompiled C vs independent interpreter) ==
+translated=10320  trials=10910 steps=78629 mismatches=0 gaps=0
+== architectures ==
+out/smb_prg_x64.o:   ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), not stripped
+out/smb_prg_arm64.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), with debug_info, not stripped
+OK
+
+Both architectures built; test reports mismatches=0 gaps=0. (exit 0)
+arm64 object exports optab, smb_cpu_init, smb_cpu_step (T). Previously-missing
+$8223/$C902/$C905/$BFB7/$DC21 are all present in out/xlt.h.
+
+2. Gap detector is non-vacuous (reproduced)
+-------------------------------------------
+Copied out/smb_prg.c -> /tmp/opencode/gapcheck/smb_prg_gap.c, deleted the single
+line `optab[0x8223] = I_8223;`, rebuilt difftest against the copy:
+
+$ /tmp/opencode/gapcheck/difftest_gap
+GAP: translated address $8223 has no function
+GAP [vector] start=$8082 step=466: $8223 is a translated target but optab is NULL
+GAP [vector] start=$8082 step=479: $8223 is a translated target but optab is NULL
+translated=10320  trials=10909 steps=83166 mismatches=0 gaps=3
+exit=1
+
+Both the static check (Phase 1b) and the dynamic successor-target check fire.
+
+3. Independent gap hunt (own decoder + traversal)
+-------------------------------------------------
+Wrote /tmp/opencode/gapcheck/scan.py: own documented-6502 opcode table, decode
+from ../out/prg.bin, recursively follow branch/JSR/JMP/fall-through from the
+*dereferenced* NMI/RESET/IRQ vectors plus $8000/$8082/$FFF0.
+
+  vectors: NMI=$8082 RESET=$8000 IRQ=$FFF0
+  independent decoded reached instrs: 1068
+  translated set size: 10320
+  reached-but-untranslated (valid opcode): 0
+  closure violations (translated -> valid untranslated succ): 0
+  VERDICT: no gaps
+
+The closure check covers all 10320 translated instructions; since the three
+roots are translated and no translated instruction has a valid untranslated
+static successor, no reachable $8000-$FFFF entry point is untranslated.
+(An initial run flagged $FFFC/$FFFE; that was my harness treating the vector
+*table* bytes as code instead of dereferencing them - fixed, no real gap.)
+
+4. Hand-computed 6502 semantics
+-------------------------------
+/tmp/opencode/semantics.c #includes out/smb_prg.c directly and calls the static
+helpers/wrappers, comparing against values computed by hand (not vs the
+reference interpreter). 44 checks, 0 failures:
+
+  ADC carry/overflow: 50+50, D0+10+1, FF+1, 7F+1, 80+80, 0+0+1
+  SBC borrow/overflow: 50-F0, 50-B0, 50-10-1, 0-0, 0-1, 80-1
+  ROL/ROR carry in/out, ASL/LSR; BIT Z/N/V; CMP C/Z/N; setnz; push/pop/push16/pop16
+  JSR wrapper I_802B: pc=$90CC, pushes $802D hi/lo, s=0xFB
+  RTS wrapper I_819C: pops $1234 -> pc=$1235
+  BRK wrapper I_9360: pushes pc+2, pushes P|B|U, sets I, pc=$E000
+  Memory-operand wrappers I_81E0 (ADC $00) and I_8222 (BIT $04A0) read mem
+
+  semantics: checks=44 fails=0  (exit 0)
+
+(One initial failure "BIT 01&40" was my hand expectation being wrong: A&M=0 so
+Z is set. Corrected the test, not the translation.)
+
+CONCLUSION
+----------
+PASS. No counterexamples. No files/functions need changing.

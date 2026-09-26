@@ -1,0 +1,874 @@
+[0m
+> build · deepseek-v4.1-flash
+I'll start by exploring the workspace and understanding the artifacts before trusting any claims.
+[0m$ [0mpwd && ls -la
+/home/wyn/smb_decomp/c
+total 144
+drwxr-xr-x. 1 wyn wyn   242 Sep 26 19:30 .
+drwxr-xr-x. 1 wyn wyn   228 Sep 26 18:53 ..
+-rwxr-xr-x. 1 wyn wyn   926 Sep 26 19:01 build_c.sh
+-rw-r--r--. 1 wyn wyn   892 Sep 26 18:53 cpu.h
+-rw-r--r--. 1 wyn wyn  5690 Sep 26 19:29 difftest.c
+-rw-r--r--. 1 wyn wyn 16965 Sep 26 19:26 gen_c.py
+drwxr-xr-x. 1 wyn wyn   274 Sep 26 19:29 out
+-rw-r--r--. 1 wyn wyn  3370 Sep 26 19:01 README.md
+-rw-r--r--. 1 wyn wyn  8905 Sep 26 19:26 ref6502.c
+-rw-r--r--. 1 wyn wyn 81018 Sep 26 19:23 VERIFY_ITER1.txt
+-rw-r--r--. 1 wyn wyn   134 Sep 26 19:30 VERIFY_ITER2.txt
+-rw-r--r--. 1 wyn wyn  2077 Sep 26 19:29 VERIFY_PROMPT2.txt
+-rw-r--r--. 1 wyn wyn  2707 Sep 26 19:02 VERIFY_PROMPT.txt
+[0m$ [0mls -la /home/wyn/smb_decomp 2>/dev/null; echo "---"; ls -la /home/wyn/smb_decomp/c 2>/dev/null
+total 72
+drwxr-xr-x. 1 wyn wyn   228 Sep 26 18:53 .
+drwx------. 1 wyn wyn   644 Sep 26 19:09 ..
+-rwxr-xr-x. 1 wyn wyn   838 Sep 26 18:20 build.sh
+drwxr-xr-x. 1 wyn wyn   242 Sep 26 19:30 c
+drwxr-xr-x. 1 wyn wyn     6 Sep 26 18:07 cc65
+-rw-r--r--. 1 wyn wyn  7708 Sep 26 18:19 gen.py
+drwxr-xr-x. 1 wyn wyn   114 Sep 26 18:11 ghidra
+drwxr-xr-x. 1 wyn wyn   246 Sep 26 18:28 out
+-rw-r--r--. 1 wyn wyn  3871 Sep 26 18:20 README.md
+-rw-r--r--. 1 wyn wyn   128 Sep 26 18:17 smb.cfg
+-rw-r--r--. 1 wyn wyn  1239 Sep 26 18:28 VERIFICATION.md
+-rw-r--r--. 1 wyn wyn  8524 Sep 26 18:28 verify_independent.py
+-rw-r--r--. 1 wyn wyn  2177 Sep 26 18:21 VERIFY_PROMPT.txt
+-rw-r--r--. 1 wyn wyn 31271 Sep 26 18:28 VERIFY_RESULT.txt
+---
+total 144
+drwxr-xr-x. 1 wyn wyn   242 Sep 26 19:30 .
+drwxr-xr-x. 1 wyn wyn   228 Sep 26 18:53 ..
+-rwxr-xr-x. 1 wyn wyn   926 Sep 26 19:01 build_c.sh
+-rw-r--r--. 1 wyn wyn   892 Sep 26 18:53 cpu.h
+-rw-r--r--. 1 wyn wyn  5690 Sep 26 19:29 difftest.c
+-rw-r--r--. 1 wyn wyn 16965 Sep 26 19:26 gen_c.py
+drwxr-xr-x. 1 wyn wyn   274 Sep 26 19:29 out
+-rw-r--r--. 1 wyn wyn  3370 Sep 26 19:01 README.md
+-rw-r--r--. 1 wyn wyn  8905 Sep 26 19:26 ref6502.c
+-rw-r--r--. 1 wyn wyn 81018 Sep 26 19:23 VERIFY_ITER1.txt
+-rw-r--r--. 1 wyn wyn   134 Sep 26 19:30 VERIFY_ITER2.txt
+-rw-r--r--. 1 wyn wyn  2077 Sep 26 19:29 VERIFY_PROMPT2.txt
+-rw-r--r--. 1 wyn wyn  2707 Sep 26 19:02 VERIFY_PROMPT.txt
+> build · deepseek-v4.1-flash
+[0m→ [0mRead README.md 
+[0m→ [0mRead VERIFY_PROMPT2.txt 
+[0m→ [0mRead VERIFY_ITER2.txt 
+[0m→ [0mRead build_c.sh 
+> build · deepseek-v4.1-flash
+[0m→ [0mRead gen_c.py 
+[0m→ [0mRead difftest.c 
+[0m→ [0mRead ref6502.c 
+[0m→ [0mRead cpu.h 
+> build · deepseek-v4.1-flash
+[0m→ [0mRead /home/wyn/smb_decomp/README.md 
+[0m→ [0mRead /home/wyn/smb_decomp/VERIFY_RESULT.txt 
+[0m$ [0mls -la /home/wyn/smb_decomp/c/out/; echo "==="; ls -la /home/wyn/smb_decomp/out/; echo "==="; ls -la /home/wyn/smb_decomp/cc65 /home/wyn/smb_decomp/ghidra
+total 17312
+drwxr-xr-x. 1 wyn wyn     274 Sep 26 19:29 .
+drwxr-xr-x. 1 wyn wyn     242 Sep 26 19:30 ..
+-rwxr-xr-x. 1 wyn wyn 1320656 Sep 26 19:29 difftest
+-rw-r--r--. 1 wyn wyn       0 Sep 26 19:29 difftest_build.err
+-rw-r--r--. 1 wyn wyn       0 Sep 26 18:55 gcc_x64.err
+-rw-r--r--. 1 wyn wyn 5742156 Sep 26 19:27 libsmb_prg_arm64.a
+-rw-r--r--. 1 wyn wyn 1734708 Sep 26 19:27 libsmb_prg_x64.a
+-rw-r--r--. 1 wyn wyn    2461 Sep 26 19:26 ref_optable.h
+-rw-r--r--. 1 wyn wyn 5741952 Sep 26 19:27 smb_prg_arm64.o
+-rw-r--r--. 1 wyn wyn 1367128 Sep 26 19:26 smb_prg.c
+-rw-r--r--. 1 wyn wyn 1734504 Sep 26 19:27 smb_prg_x64.o
+-rw-r--r--. 1 wyn wyn   72392 Sep 26 19:26 xlt.h
+-rw-r--r--. 1 wyn wyn       0 Sep 26 18:55 zig_arm.err
+===
+total 1600
+drwxr-xr-x. 1 wyn wyn    246 Sep 26 18:28 .
+drwxr-xr-x. 1 wyn wyn    228 Sep 26 18:53 ..
+-rw-r--r--. 1 wyn wyn      0 Sep 26 18:19 ca65.err
+-rw-r--r--. 1 wyn wyn   8192 Sep 26 18:07 chr.bin
+-rw-r--r--. 1 wyn wyn 354370 Sep 26 18:28 da65_linear.asm
+-rw-r-----. 1 wyn wyn 294115 Sep 26 18:11 ghidra_map.txt
+-rw-r--r--. 1 wyn wyn     16 Sep 26 18:07 header.bin
+-rw-r--r--. 1 wyn wyn      0 Sep 26 18:19 ld65.err
+-rw-r--r--. 1 wyn wyn  40976 Sep 26 18:19 original.nes
+-rw-r--r--. 1 wyn wyn  32768 Sep 26 18:07 prg.bin
+-rw-r--r--. 1 wyn wyn  32768 Sep 26 18:28 prg_rebuilt.bin
+-rw-r--r--. 1 wyn wyn 587056 Sep 26 18:19 smb.asm
+-rw-r--r--. 1 wyn wyn 225284 Sep 26 18:28 smb.o
+-rw-r--r--. 1 wyn wyn  40976 Sep 26 18:28 smb_rebuilt.nes
+===
+/home/wyn/smb_decomp/cc65:
+total 0
+drwxr-xr-x. 1 wyn wyn   6 Sep 26 18:07 .
+drwxr-xr-x. 1 wyn wyn 228 Sep 26 18:53 ..
+drwxr-xr-x. 1 wyn wyn  22 Sep 26 18:07 usr
+
+/home/wyn/smb_decomp/ghidra:
+total 12
+drwxr-xr-x. 1 wyn wyn  114 Sep 26 18:11 .
+drwxr-xr-x. 1 wyn wyn  228 Sep 26 18:53 ..
+-rw-r--r--. 1 wyn wyn 2923 Sep 26 18:11 AnalyzeDump.java
+-rw-r--r--. 1 wyn wyn 1953 Sep 26 18:07 DumpMap.java
+-rw-r-----. 1 wyn wyn    0 Sep 26 18:08 proj.gpr
+drwxr-x---. 1 wyn wyn   58 Sep 26 18:08 proj.rep
+-rw-r--r--. 1 wyn wyn  940 Sep 26 18:10 SeedExec.java
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && echo "== tools ==" && which gcc python3 ar file && ls -la /tmp/opencode/zig/zig 2>/dev/null; echo "== hashes =="; sha256sum /home/wyn/smb_decomp/out/prg.bin /home/wyn/smb_decomp/out/smb.asm out/smb_prg.c out/xlt.h out/ref_optable.h; echo "== counts =="; grep -c 'static void I_' out/smb_prg.c; grep -o 'XLT_COUNT [0-9]*' out/xlt.h
+== tools ==
+/usr/lib64/ccache/gcc
+/usr/bin/python3
+/usr/bin/ar
+/usr/bin/file
+-rwxr-xr-x. 1 wyn wyn 164675136 May 23  2025 /tmp/opencode/zig/zig
+== hashes ==
+5374abb64cfb9b5d961856c60166cedc55859164cf2b8867730e144fa2bdd594  /home/wyn/smb_decomp/out/prg.bin
+037462b5c74ab0c3a91b426d3f1e024a8b188c74e4fd4d6c9c8ff7bd0d3769e7  /home/wyn/smb_decomp/out/smb.asm
+f0c9b1551b7adda20e77a1c81c8c6113ae72812a56a119f960994113ba0b39d2  out/smb_prg.c
+f6b894d27e80bf47f97fb3d83295ca708b3d75b05f7f4ce63c003b69df1ea591  out/xlt.h
+0fbd64f1904a80949c5fe312d6aacae202f7015880b8d665e388dd3feea7ca97  out/ref_optable.h
+== counts ==
+10320
+XLT_COUNT 10320
+[0m$ [0mcd /home/wyn/smb_decomp/c && for a in 8223 C902 C905 BFB7 DC21; do echo -n "\$$a in xlt: "; grep -c "0x$a" out/xlt.h; echo -n "  optab assign: "; grep -c "optab\[0x$a\]" out/smb_prg.c; echo -n "  fn: "; grep -c "static void I_$a(" out/smb_prg.c; done
+$8223 in xlt: 1
+  optab assign: 1
+  fn: 1
+$C902 in xlt: 1
+  optab assign: 1
+  fn: 1
+$C905 in xlt: 1
+  optab assign: 1
+  fn: 1
+$BFB7 in xlt: 1
+  optab assign: 1
+  fn: 1
+$DC21 in xlt: 1
+  optab assign: 1
+  fn: 1
+> build · deepseek-v4.1-flash
+Now let me run the build/test as claimed, while examining artifacts.
+[0m$ [0mcd /home/wyn/smb_decomp/c && time ./build_c.sh 2>&1 | tee /tmp/opencode/build_run.txt; echo "EXIT=${PIPESTATUS[0]}"
+== generating out/smb_prg.c ==
+asm instructions: 10255  added entry points: 65  total: 10320
+instructions: 10320  code bytes: 21975  data bytes: 10793
+wrote /home/wyn/smb_decomp/c/out/smb_prg.c, out/ref_optable.h and out/xlt.h
+== x86_64 object ==
+== aarch64 object ==
+== differential test (decompiled C vs independent interpreter) ==
+translated=10320  trials=10910 steps=78629 mismatches=0 gaps=0
+== architectures ==
+out/smb_prg_x64.o:   ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), not stripped
+out/smb_prg_arm64.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), with debug_info, not stripped
+OK
+
+real	0m21.006s
+user	0m20.496s
+sys	0m0.383s
+EXIT=0
+> build · deepseek-v4.1-flash
+Build passes. Now let me write an **independent** verifier with my own opcode table and recursive traversal (not importing `gen_c.py`'s table).
+[0m← [0mWrite /tmp/opencode/adv_verify.py
+Created file successfully: /tmp/opencode/adv_verify.py
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 /tmp/opencode/adv_verify.py; echo "EXIT=$?"
+== D. previously-missing addresses ==
+  $8223: in_xlt=True decode=('LDY', 'imm', 2, 4) asm_mn=None match=False
+  $C902: in_xlt=True decode=('JMP', 'abs', 3, 54906) asm_mn=None match=False
+  $C905: in_xlt=True decode=('LDA', 'zpx', 2, 22) asm_mn=None match=False
+  $BFB7: in_xlt=True decode=('LDA', 'imm', 2, 1) asm_mn=None match=False
+  $DC21: in_xlt=True decode=('LDA', 'zpx', 2, 207) asm_mn=None match=False
+== A. independent decode vs smb.asm ==
+  asm instructions=10255 decode disagreements=0
+== B. closure: successors of translated insns ==
+  untranslated valid successors of translated insns: 3
+    $9746 -> $7897 (BEQ)
+    $A535 -> $52FD (CMP)
+    $A53A -> $406E (ASL)
+== C. independent traversal from RESET/NMI/IRQ ==
+  reachable valid instructions (static closure): 1068
+  reachable but NOT translated: 0
+== E. added entry points (in xlt, not in asm): 65
+   $8223 $83A6 $8807 $921E $9507 $9667 $9669 $9746 $996A $997B $997E $AEE2 $B04F $BDD4 $BDD7 $BFB7 $C282 $C7AB $C892 $C894 $C896 $C898 $C89A $C89C $C89E $C902 $C905 $C907 $CC1F $CC29 $CC2B $CC2D $CC2F $CC31 $CC33 $CC35 $D00C $D033 $D036 $D037 ...
+   added entries not a direct successor of an asm insn: 37
+    $9669
+    $C894
+    $C896
+    $C898
+    $C89A
+    $C89C
+    $C89E
+    $C907
+    $CC29
+    $CC2B
+    $CC2D
+    $CC2F
+    $CC31
+    $CC33
+    $CC35
+    $D036
+    $D037
+    $D039
+    $D03C
+    $D03E
+
+RESULT: FAIL
+   D $8223
+   D $C902
+   D $C905
+   D $BFB7
+   D $DC21
+   B 3 untranslated successors
+EXIT=1
+> build · deepseek-v4.1-flash
+My verifier had a bug (negative indexing for addresses below `$8000`). Let me investigate the flagged items properly and cross-check the 5 addresses against ROM bytes/asm context.
+[0m$ [0mcd /home/wyn/smb_decomp && python3 - <<'PY'
+rom=open('out/prg.bin','rb').read()
+def rb(a): return rom[a-0x8000]
+for a in (0x8223,0xC902,0xC905,0xBFB7,0xDC21):
+    print(f"${a:04X}: bytes={rom[a-0x8000:a-0x8000+4].hex(' ')}")
+print()
+# asm context: lines mentioning these addresses as operands
+import re
+lines=open('out/smb.asm').read().splitlines()
+for a in (0x8223,0xC902,0xC905,0xBFB7,0xDC21):
+    print(f"== refs to ${a:04X} ==")
+    for i,l in enumerate(lines):
+        if f"${a:04X}" in l:
+            print(f"  {i+1}: {l.strip()}")
+PY
+$8223: bytes=a0 04 a9 f8
+$C902: bytes=4c 7a d6 b5
+$C905: bytes=b5 16 20 04
+$BFB7: bytes=a9 01 48 b4
+$DC21: bytes=b5 cf a4 0e
+
+== refs to $8223 ==
+  146: JSR a:$8223                ; $814A: 20 23 82
+== refs to $C902 ==
+  6304: .byte $4C,$7A   ; $C902
+== refs to $C905 ==
+  6302: JSR a:$C905                ; $C8FF: 20 05 C9
+== refs to $BFB7 ==
+  7487: JSR a:$BFB7                ; $D498: 20 B7 BF
+  7666: JSR a:$BFB7                ; $D5F5: 20 B7 BF
+== refs to $DC21 ==
+  7504: JSR a:$DC21                ; $D4BA: 20 21 DC
+  7645: JSR a:$DC21                ; $D5CD: 20 21 DC
+  7672: JSR a:$DC21                ; $D603: 20 21 DC
+  7693: JSR a:$DC21                ; $D62D: 20 21 DC
+  7699: JSR a:$DC21                ; $D639: 20 21 DC
+[0m$ [0mcd /home/wyn/smb_decomp && python3 - <<'PY'
+# Show the containing instruction (the one before) for addresses that are alternate
+# entries: find asm instruction whose byte range strictly contains the address.
+import re
+rom=open('out/prg.bin','rb').read()
+lines=open('out/smb.asm').read().splitlines()
+recs=[]
+for l in lines:
+    m=re.match(r'^\s+([A-Z]{3})\s*(.*?)\s*;\s*\$([0-9A-F]{4}):\s*([0-9A-F ]+)$', l)
+    if m:
+        recs.append((int(m.group(3),16), m.group(1), m.group(2).strip(), m.group(4).split()))
+for a in (0x8223,0xC902,0xC905,0xBFB7,0xDC21):
+    for (aa,mn,op,bs) in recs:
+        if aa < a < aa+len(bs):
+            print(f"${a:04X} lies inside {mn} {op} at ${aa:04X} bytes={' '.join(bs)}")
+            break
+    else:
+        print(f"${a:04X} not inside any asm instruction (or is a start)")
+PY
+$8223 lies inside BIT a:$04A0 at $8222 bytes=2C A0 04
+$C902 not inside any asm instruction (or is a start)
+$C905 lies inside DEC z:$B5,x at $C904 bytes=D6 B5
+$BFB7 lies inside BIT a:$01A9 at $BFB6 bytes=2C A9 01
+$DC21 lies inside BIT a:$CFB5 at $DC20 bytes=2C B5 CF
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp && echo "== occurrences of C902 in smb.asm ==" && grep -n "C902" out/smb.asm; echo "== labels around C8F0-C910 ==" && grep -nE '^\s+|^L' out/smb.asm | grep -E '\$C90[0-9A-F]:' | head -40; echo "== context C8F8-C912 ==" && sed -n '6290,6315p' out/smb.asm
+== occurrences of C902 in smb.asm ==
+6301:        BNE LC902                  ; $C8FD: D0 03
+6303:LC902:
+6304:        .byte $4C,$7A   ; $C902
+== labels around C8F0-C910 ==
+6305:        DEC z:$B5,x                ; $C904: D6 B5
+6306:        ASL z:$20,x                ; $C906: 16 20
+== context C8F8-C912 ==
+        JMP a:$E87D                ; $C8DD: 4C 7D E8
+        LDA #$00                   ; $C8E0: A9 00
+        STA a:$03C5,x              ; $C8E2: 9D C5 03
+        JSR a:$F1AF                ; $C8E5: 20 AF F1
+        JSR a:$F152                ; $C8E8: 20 52 F1
+        JSR a:$E87D                ; $C8EB: 20 7D E8
+        JSR a:$E243                ; $C8EE: 20 43 E2
+        JSR a:$DFC1                ; $C8F1: 20 C1 DF
+        JSR a:$DA33                ; $C8F4: 20 33 DA
+        JSR a:$D853                ; $C8F7: 20 53 D8
+        LDY a:$0747                ; $C8FA: AC 47 07
+        BNE LC902                  ; $C8FD: D0 03
+        JSR a:$C905                ; $C8FF: 20 05 C9
+LC902:
+        .byte $4C,$7A   ; $C902
+        DEC z:$B5,x                ; $C904: D6 B5
+        ASL z:$20,x                ; $C906: 16 20
+        .byte $04,$8E,$77,$CA,$77,$CA,$77,$CA,$77,$CA,$77,$CA,$D8,$C9,$77,$CA   ; $C908
+        .byte $89,$CB,$36,$CC,$34,$C9,$4A,$CC,$4A,$CC,$B0,$C9,$B0,$D3,$F9,$CA   ; $C918
+        .byte $FF,$CA,$25,$CB,$28,$CF,$77,$CA,$34,$C9,$DF,$CE,$60   ; $C928
+        JSR a:$D1EB                ; $C935: 20 EB D1
+        JSR a:$F1AF                ; $C938: 20 AF F1
+        JSR a:$F152                ; $C93B: 20 52 F1
+        JSR a:$E243                ; $C93E: 20 43 E2
+        JSR a:$D853                ; $C941: 20 53 D8
+        JMP a:$D67A                ; $C944: 4C 7A D6
+> build · deepseek-v4.1-flash
+`$C902` is a branch target (`BNE LC902` at `$C8FD`) and `$C905` a `JSR` target — genuine alternate entries. The 3 "successors" are branch targets below `$8000` (RAM), which my verifier wrongly decoded due to negative indexing. Let me fix and deepen the checks.
+[0m← [0mEdit /tmp/opencode/adv_verify.py
+Index: /tmp/opencode/adv_verify.py
+===================================================================
+--- /tmp/opencode/adv_verify.py
++++ /tmp/opencode/adv_verify.py
+@@ -70,8 +70,9 @@
+ LEN = {"imp":1,"acc":1,"imm":2,"zp":2,"zpx":2,"zpy":2,
+        "abs":3,"abx":3,"aby":3,"ind":3,"izx":2,"izy":2,"rel":2}
+ 
+ def decode(a):
++    if a < BASE or a > 0xFFFF: return None
+     op = prg[a - BASE]
+     if op not in OPC: return None
+     mn, mode = OPC[op]
+     ln = LEN[mode]
+
+> build · deepseek-v4.1-flash
+[0m← [0mEdit /tmp/opencode/adv_verify.py
+Index: /tmp/opencode/adv_verify.py
+===================================================================
+--- /tmp/opencode/adv_verify.py
++++ /tmp/opencode/adv_verify.py
+@@ -113,15 +113,19 @@
+ warn = []
+ 
+ # Check D: previously missing addresses
+ print("== D. previously-missing addresses ==")
++# which instruction references each target (successor scan over all asm starts)
++refs = collections.defaultdict(list)
++for a in asm:
++    for s in successors(a):
++        if 0 <= s <= 0xFFFF: refs[s].append(a)
+ for a in (0x8223,0xC902,0xC905,0xBFB7,0xDC21):
+     d = decode(a)
+     ok = (a in xlt) and d is not None
+-    asmm = asm.get(a)
+-    match = d and asmm == d[0]
+-    print(f"  ${a:04X}: in_xlt={a in xlt} decode={d} asm_mn={asmm} match={match}")
+-    if not (ok and match): fails.append(f"D ${a:04X}")
++    print(f"  ${a:04X}: in_xlt={a in xlt} decode={d} refs={[hex(r) for r in refs.get(a,[])]}")
++    if not ok: fails.append(f"D ${a:04X} in_xlt/decode")
++    if not refs.get(a): fails.append(f"D ${a:04X} not a static successor of any asm insn")
+ 
+ # Check A: decode agreement between my table and smb.asm
+ print("== A. independent decode vs smb.asm ==")
+ bad_decode = 0
+
+> build · deepseek-v4.1-flash
+[0m← [0mEdit /tmp/opencode/adv_verify.py
+Index: /tmp/opencode/adv_verify.py
+===================================================================
+--- /tmp/opencode/adv_verify.py
++++ /tmp/opencode/adv_verify.py
+@@ -168,21 +168,26 @@
+ print(f"  reachable but NOT translated: {len(reach_unt)}")
+ for a in reach_unt[:20]: print(f"    ${a:04X}: {seen[a]}")
+ if reach_unt: fails.append(f"C {len(reach_unt)} reachable untranslated")
+ 
+-# Check E: added-entry bookkeeping
++# Check E: added-entry bookkeeping via closure from all asm starts
+ added = sorted(a for a in xlt if a not in asm)
+ print(f"== E. added entry points (in xlt, not in asm): {len(added)}")
+-print("   " + " ".join(f"${a:04X}" for a in added[:40]) + (" ..." if len(added)>40 else ""))
+-# every added entry must itself be a static target of some asm instruction
+-targets = set()
+-for a in asm:
++print("   " + " ".join(f"${a:04X}" for a in added))
++closure = set(asm)
++work = list(asm)
++while work:
++    a = work.pop()
+     for s in successors(a):
+-        if 0 <= s <= 0xFFFF: targets.add(s)
+-unexplained = [a for a in added if a not in targets and a not in (0x8000,0x8082,0xFFF0)]
+-print(f"   added entries not a direct successor of an asm insn: {len(unexplained)}")
+-for a in unexplained[:20]: print(f"    ${a:04X}")
+-if unexplained: warn.append(f"E {len(unexplained)} added entries not directly justified (may be fixpoint descendants)")
++        if s not in closure and decode(s) is not None:
++            closure.add(s); work.append(s)
++extra = sorted(closure - set(xlt))
++missing = sorted(set(xlt) - closure)
++print(f"   closure-from-asm size={len(closure)}  xlt size={len(xlt)}")
++print(f"   closure addresses NOT translated: {len(extra)}  {[hex(x) for x in extra[:20]]}")
++print(f"   translated addresses NOT in closure: {len(missing)}  {[hex(x) for x in missing[:20]]}")
++if extra: fails.append(f"E {len(extra)} valid static-reachable addrs untranslated")
++if missing: fails.append(f"E {len(missing)} translated addrs not statically reachable from asm")
+ 
+ print()
+ if fails:
+     print("RESULT: FAIL")
+
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 /tmp/opencode/adv_verify.py; echo "EXIT=$?"
+== D. previously-missing addresses ==
+  $8223: in_xlt=True decode=('LDY', 'imm', 2, 4) refs=['0x814a']
+  $C902: in_xlt=True decode=('JMP', 'abs', 3, 54906) refs=['0xc8fd', '0xc8ff']
+  $C905: in_xlt=True decode=('LDA', 'zpx', 2, 22) refs=['0xc8ff']
+  $BFB7: in_xlt=True decode=('LDA', 'imm', 2, 1) refs=['0xd498', '0xd5f5']
+  $DC21: in_xlt=True decode=('LDA', 'zpx', 2, 207) refs=['0xd4ba', '0xd5cd', '0xd603', '0xd62d', '0xd639']
+== A. independent decode vs smb.asm ==
+  asm instructions=10255 decode disagreements=0
+== B. closure: successors of translated insns ==
+  untranslated valid successors of translated insns: 0
+== C. independent traversal from RESET/NMI/IRQ ==
+  reachable valid instructions (static closure): 1068
+  reachable but NOT translated: 0
+== E. added entry points (in xlt, not in asm): 65
+   $8223 $83A6 $8807 $921E $9507 $9667 $9669 $9746 $996A $997B $997E $AEE2 $B04F $BDD4 $BDD7 $BFB7 $C282 $C7AB $C892 $C894 $C896 $C898 $C89A $C89C $C89E $C902 $C905 $C907 $CC1F $CC29 $CC2B $CC2D $CC2F $CC31 $CC33 $CC35 $D00C $D033 $D036 $D037 $D039 $D03C $D03E $D041 $D043 $D045 $D047 $D049 $D04C $D04F $D051 $D053 $D056 $D058 $D05A $D05C $D2E8 $DC21 $E3EB $F006 $F008 $F0BC $F0BE $F0C0 $F0C3
+   closure-from-asm size=10320  xlt size=10320
+   closure addresses NOT translated: 0  []
+   translated addresses NOT in closure: 0  []
+
+RESULT: PASS (independent decode + closure + traversal clean)
+EXIT=0
+> build · deepseek-v4.1-flash
+Independent decode/closure passes. Now claim #3: test that gap detection actually catches a deliberately removed function.
+[0m$ [0mrm -rf /tmp/opencode/gaptest && mkdir -p /tmp/opencode/gaptest && cd /home/wyn/smb_decomp/c && cp cpu.h difftest.c ref6502.c /tmp/opencode/gaptest/ && cp out/smb_prg.c out/xlt.h out/ref_optable.h /tmp/opencode/gaptest/ && cd /tmp/opencode/gaptest && echo "baseline build:" && gcc -O2 -std=c11 -I. -o difftest difftest.c ref6502.c smb_prg.c && ./difftest; echo "baseline exit=$?"
+baseline build:
+difftest.c:15:10: fatal error: out/xlt.h: No such file or directory
+   15 | #include "out/xlt.h"
+      |          ^~~~~~~~~~~
+compilation terminated.
+ref6502.c:9:10: fatal error: out/ref_optable.h: No such file or directory
+    9 | #include "out/ref_optable.h"
+      |          ^~~~~~~~~~~~~~~~~~~
+compilation terminated.
+baseline exit=1
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /tmp/opencode/gaptest && mkdir -p out && mv smb_prg.c xlt.h ref_optable.h out/ && echo "baseline:" && gcc -O2 -std=c11 -I. -o difftest difftest.c ref6502.c out/smb_prg.c && ./difftest; echo "baseline exit=$?"
+baseline:
+translated=10320  trials=10910 steps=78629 mismatches=0 gaps=0
+baseline exit=0
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /tmp/opencode/gaptest && grep -n "optab\[0x8223\]" out/smb_prg.c && sed -i '/optab\[0x8223\] = I_8223;/d' out/smb_prg.c && echo "--- rebuilt with optab[0x8223] removed ---" && gcc -O2 -std=c11 -I. -o difftest_nogap difftest.c ref6502.c out/smb_prg.c && ./difftest_nogap; echo "exit=$?"
+12640:    optab[0x8223] = I_8223;
+--- rebuilt with optab[0x8223] removed ---
+GAP: translated address $8223 has no function
+GAP [vector] start=$8082 step=466: $8223 is a translated target but optab is NULL
+GAP [vector] start=$8082 step=479: $8223 is a translated target but optab is NULL
+GAP [trace] start=$A535 step=2: $52FD is a translated target but optab is NULL
+translated=10320  trials=10909 steps=83166 mismatches=0 gaps=4
+exit=1
+> build · deepseek-v4.1-flash
+Gap detection catches the removed function (Phase 1b + runtime). But I notice a **spurious GAP candidate**: `$A535 step=2 -> $52FD` (a RAM address). Let me investigate whether `targetbit` incorrectly marks non-ROM addresses.
+[0m$ [0mcd /home/wyn/smb_decomp && python3 - <<'PY'
+rom=open('out/prg.bin','rb').read()
+import re
+for a in (0x9746,0xA535,0xA53A):
+    print(f"${a:04X}: bytes={rom[a-0x8000:a-0x8000+4].hex(' ')}")
+lines=open('out/smb.asm').read().splitlines()
+for a in (0x9746,0xA535,0xA53A):
+    print(f"== refs to ${a:04X} ==")
+    for i,l in enumerate(lines):
+        if f"${a:04X}" in l: print("  ",l.strip())
+# containing instruction
+recs=[]
+for l in lines:
+    m=re.match(r'^\s+([A-Z]{3})\s*(.*?)\s*;\s*\$([0-9A-F]{4}):\s*([0-9A-F ]+)$', l)
+    if m: recs.append((int(m.group(3),16),m.group(1),m.group(2).strip(),m.group(4).split()))
+for a in (0x9746,0xA535,0xA53A):
+    for (aa,mn,op,bs) in recs:
+        if aa < a < aa+len(bs):
+            print(f"${a:04X} inside {mn} {op} at ${aa:04X} bytes={' '.join(bs)}"); break
+    else: print(f"${a:04X} is an instruction start (or unknown)")
+PY
+$9746: bytes=4c 97 78 97
+$A535: bytes=20 fd 52 21
+$A53A: bytes=20 6e 40 58
+== refs to $9746 ==
+   .byte $4C,$97,$78,$97,$69,$9A   ; $9746
+== refs to $A535 ==
+   JSR a:$52FD                ; $A535: 20 FD 52
+== refs to $A53A ==
+   JSR a:$406E                ; $A53A: 20 6E 40
+$9746 is an instruction start (or unknown)
+$A535 is an instruction start (or unknown)
+$A53A is an instruction start (or unknown)
+> build · deepseek-v4.1-flash
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && echo "== generated bodies for the 5 ==" && for a in 8223 C902 C905 BFB7 DC21; do echo -n "I_$a: "; grep -o "static void I_$a(Cpu \*c){ [^}]*}" out/smb_prg.c; done
+== generated bodies for the 5 ==
+I_8223: static void I_8223(Cpu *c){ u8 m = 0x04; c->y = m; setnz(c, m); c->pc = 0x8225; }
+I_C902: static void I_C902(Cpu *c){ c->pc = 0xD67A; }
+I_C905: static void I_C905(Cpu *c){ u16 ad = (u16)((0x16 + c->x) & 0xFF); u8 m = c->mem[ad]; c->a = m; setnz(c, m); c->pc = 0xC907; }
+I_BFB7: static void I_BFB7(Cpu *c){ u8 m = 0x01; c->a = m; setnz(c, m); c->pc = 0xBFB9; }
+I_DC21: static void I_DC21(Cpu *c){ u16 ad = (u16)((0xCF + c->x) & 0xFF); u8 m = c->mem[ad]; c->a = m; setnz(c, m); c->pc = 0xDC23; }
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 - <<'PY'
+# Compare ref_optable.h (generated) against my independent canonical table.
+import re,sys
+sys.path.insert(0,'/tmp/opencode')
+import importlib.util
+spec=importlib.util.spec_from_file_location("av","/tmp/opencode/adv_verify.py")
+# avoid running whole script: parse OPC/MODES by exec of prefix? simpler: redefine via importing file text
+src=open('/tmp/opencode/adv_verify.py').read()
+ns={}
+exec(src.split('# ---- translated set')[0], ns)
+OPC=ns['OPC']; LEN=ns['LEN']
+modes=["imp","acc","imm","zp","zpx","zpy","abs","abx","aby","ind","izx","izy","rel"]
+mnidx={}
+txt=open('out/ref_optable.h').read()
+mns=re.search(r'enum \{ (.*?), MN_NONE \}',txt).group(1).split(', ')
+for i,m in enumerate(mns): mnidx[m]=i
+MN=[int(x) for x in re.search(r'REF_MN\[256\] = \{([^}]*)\}',txt).group(1).split(',')]
+MD=[int(x) for x in re.search(r'REF_MODE\[256\] = \{([^}]*)\}',txt).group(1).split(',')]
+bad=0
+for op in range(256):
+    mine = OPC.get(op)
+    gen_valid = MN[op]!=0xFF
+    if mine is None:
+        if gen_valid:
+            print(f"opcode ${op:02X}: generated {mns[MN[op]]}/{modes[MD[op]]}, my table invalid"); bad+=1
+    else:
+        gm=mns[MN[op]] if gen_valid else None
+        gd=modes[MD[op]] if gen_valid else None
+        if not gen_valid or gm!=mine[0] or gd!=mine[1]:
+            print(f"opcode ${op:02X}: generated {gm}/{gd} vs mine {mine}"); bad+=1
+print("opcode-table disagreements:",bad)
+print("valid opcodes: mine",len(OPC),"generated",sum(1 for x in MN if x!=0xFF))
+PY
+opcode $00: generated MN_BRK/imp vs mine ('BRK', 'imp')
+opcode $01: generated MN_ORA/izx vs mine ('ORA', 'izx')
+opcode $05: generated MN_ORA/zp vs mine ('ORA', 'zp')
+opcode $06: generated MN_ASL/zp vs mine ('ASL', 'zp')
+opcode $08: generated MN_PHP/imp vs mine ('PHP', 'imp')
+opcode $09: generated MN_ORA/imm vs mine ('ORA', 'imm')
+opcode $0A: generated MN_ASL/acc vs mine ('ASL', 'acc')
+opcode $0D: generated MN_ORA/abs vs mine ('ORA', 'abs')
+opcode $0E: generated MN_ASL/abs vs mine ('ASL', 'abs')
+opcode $10: generated MN_BPL/rel vs mine ('BPL', 'rel')
+opcode $11: generated MN_ORA/izy vs mine ('ORA', 'izy')
+opcode $15: generated MN_ORA/zpx vs mine ('ORA', 'zpx')
+opcode $16: generated MN_ASL/zpx vs mine ('ASL', 'zpx')
+opcode $18: generated MN_CLC/imp vs mine ('CLC', 'imp')
+opcode $19: generated MN_ORA/aby vs mine ('ORA', 'aby')
+opcode $1D: generated MN_ORA/abx vs mine ('ORA', 'abx')
+opcode $1E: generated MN_ASL/abx vs mine ('ASL', 'abx')
+opcode $20: generated MN_JSR/abs vs mine ('JSR', 'abs')
+opcode $21: generated MN_AND/izx vs mine ('AND', 'izx')
+opcode $24: generated MN_BIT/zp vs mine ('BIT', 'zp')
+opcode $25: generated MN_AND/zp vs mine ('AND', 'zp')
+opcode $26: generated MN_ROL/zp vs mine ('ROL', 'zp')
+opcode $28: generated MN_PLP/imp vs mine ('PLP', 'imp')
+opcode $29: generated MN_AND/imm vs mine ('AND', 'imm')
+opcode $2A: generated MN_ROL/acc vs mine ('ROL', 'acc')
+opcode $2C: generated MN_BIT/abs vs mine ('BIT', 'abs')
+opcode $2D: generated MN_AND/abs vs mine ('AND', 'abs')
+opcode $2E: generated MN_ROL/abs vs mine ('ROL', 'abs')
+opcode $30: generated MN_BMI/rel vs mine ('BMI', 'rel')
+opcode $31: generated MN_AND/izy vs mine ('AND', 'izy')
+opcode $35: generated MN_AND/zpx vs mine ('AND', 'zpx')
+opcode $36: generated MN_ROL/zpx vs mine ('ROL', 'zpx')
+opcode $38: generated MN_SEC/imp vs mine ('SEC', 'imp')
+opcode $39: generated MN_AND/aby vs mine ('AND', 'aby')
+opcode $3D: generated MN_AND/abx vs mine ('AND', 'abx')
+opcode $3E: generated MN_ROL/abx vs mine ('ROL', 'abx')
+opcode $40: generated MN_RTI/imp vs mine ('RTI', 'imp')
+opcode $41: generated MN_EOR/izx vs mine ('EOR', 'izx')
+opcode $45: generated MN_EOR/zp vs mine ('EOR', 'zp')
+opcode $46: generated MN_LSR/zp vs mine ('LSR', 'zp')
+opcode $48: generated MN_PHA/imp vs mine ('PHA', 'imp')
+opcode $49: generated MN_EOR/imm vs mine ('EOR', 'imm')
+opcode $4A: generated MN_LSR/acc vs mine ('LSR', 'acc')
+opcode $4C: generated MN_JMP/abs vs mine ('JMP', 'abs')
+opcode $4D: generated MN_EOR/abs vs mine ('EOR', 'abs')
+opcode $4E: generated MN_LSR/abs vs mine ('LSR', 'abs')
+opcode $50: generated MN_BVC/rel vs mine ('BVC', 'rel')
+opcode $51: generated MN_EOR/izy vs mine ('EOR', 'izy')
+opcode $55: generated MN_EOR/zpx vs mine ('EOR', 'zpx')
+opcode $56: generated MN_LSR/zpx vs mine ('LSR', 'zpx')
+opcode $58: generated MN_CLI/imp vs mine ('CLI', 'imp')
+opcode $59: generated MN_EOR/aby vs mine ('EOR', 'aby')
+opcode $5D: generated MN_EOR/abx vs mine ('EOR', 'abx')
+opcode $5E: generated MN_LSR/abx vs mine ('LSR', 'abx')
+opcode $60: generated MN_RTS/imp vs mine ('RTS', 'imp')
+opcode $61: generated MN_ADC/izx vs mine ('ADC', 'izx')
+opcode $65: generated MN_ADC/zp vs mine ('ADC', 'zp')
+opcode $66: generated MN_ROR/zp vs mine ('ROR', 'zp')
+opcode $68: generated MN_PLA/imp vs mine ('PLA', 'imp')
+opcode $69: generated MN_ADC/imm vs mine ('ADC', 'imm')
+opcode $6A: generated MN_ROR/acc vs mine ('ROR', 'acc')
+opcode $6C: generated MN_JMP/ind vs mine ('JMP', 'ind')
+opcode $6D: generated MN_ADC/abs vs mine ('ADC', 'abs')
+opcode $6E: generated MN_ROR/abs vs mine ('ROR', 'abs')
+opcode $70: generated MN_BVS/rel vs mine ('BVS', 'rel')
+opcode $71: generated MN_ADC/izy vs mine ('ADC', 'izy')
+opcode $75: generated MN_ADC/zpx vs mine ('ADC', 'zpx')
+opcode $76: generated MN_ROR/zpx vs mine ('ROR', 'zpx')
+opcode $78: generated MN_SEI/imp vs mine ('SEI', 'imp')
+opcode $79: generated MN_ADC/aby vs mine ('ADC', 'aby')
+opcode $7D: generated MN_ADC/abx vs mine ('ADC', 'abx')
+opcode $7E: generated MN_ROR/abx vs mine ('ROR', 'abx')
+opcode $81: generated MN_STA/izx vs mine ('STA', 'izx')
+opcode $84: generated MN_STY/zp vs mine ('STY', 'zp')
+opcode $85: generated MN_STA/zp vs mine ('STA', 'zp')
+opcode $86: generated MN_STX/zp vs mine ('STX', 'zp')
+opcode $88: generated MN_DEY/imp vs mine ('DEY', 'imp')
+opcode $8A: generated MN_TXA/imp vs mine ('TXA', 'imp')
+opcode $8C: generated MN_STY/abs vs mine ('STY', 'abs')
+opcode $8D: generated MN_STA/abs vs mine ('STA', 'abs')
+opcode $8E: generated MN_STX/abs vs mine ('STX', 'abs')
+opcode $90: generated MN_BCC/rel vs mine ('BCC', 'rel')
+opcode $91: generated MN_STA/izy vs mine ('STA', 'izy')
+opcode $94: generated MN_STY/zpx vs mine ('STY', 'zpx')
+opcode $95: generated MN_STA/zpx vs mine ('STA', 'zpx')
+opcode $96: generated MN_STX/zpy vs mine ('STX', 'zpy')
+opcode $98: generated MN_TYA/imp vs mine ('TYA', 'imp')
+opcode $99: generated MN_STA/aby vs mine ('STA', 'aby')
+opcode $9A: generated MN_TXS/imp vs mine ('TXS', 'imp')
+opcode $9D: generated MN_STA/abx vs mine ('STA', 'abx')
+opcode $A0: generated MN_LDY/imm vs mine ('LDY', 'imm')
+opcode $A1: generated MN_LDA/izx vs mine ('LDA', 'izx')
+opcode $A2: generated MN_LDX/imm vs mine ('LDX', 'imm')
+opcode $A4: generated MN_LDY/zp vs mine ('LDY', 'zp')
+opcode $A5: generated MN_LDA/zp vs mine ('LDA', 'zp')
+opcode $A6: generated MN_LDX/zp vs mine ('LDX', 'zp')
+opcode $A8: generated MN_TAY/imp vs mine ('TAY', 'imp')
+opcode $A9: generated MN_LDA/imm vs mine ('LDA', 'imm')
+opcode $AA: generated MN_TAX/imp vs mine ('TAX', 'imp')
+opcode $AC: generated MN_LDY/abs vs mine ('LDY', 'abs')
+opcode $AD: generated MN_LDA/abs vs mine ('LDA', 'abs')
+opcode $AE: generated MN_LDX/abs vs mine ('LDX', 'abs')
+opcode $B0: generated MN_BCS/rel vs mine ('BCS', 'rel')
+opcode $B1: generated MN_LDA/izy vs mine ('LDA', 'izy')
+opcode $B4: generated MN_LDY/zpx vs mine ('LDY', 'zpx')
+opcode $B5: generated MN_LDA/zpx vs mine ('LDA', 'zpx')
+opcode $B6: generated MN_LDX/zpy vs mine ('LDX', 'zpy')
+opcode $B8: generated MN_CLV/imp vs mine ('CLV', 'imp')
+opcode $B9: generated MN_LDA/aby vs mine ('LDA', 'aby')
+opcode $BA: generated MN_TSX/imp vs mine ('TSX', 'imp')
+opcode $BC: generated MN_LDY/abx vs mine ('LDY', 'abx')
+opcode $BD: generated MN_LDA/abx vs mine ('LDA', 'abx')
+opcode $BE: generated MN_LDX/aby vs mine ('LDX', 'aby')
+opcode $C0: generated MN_CPY/imm vs mine ('CPY', 'imm')
+opcode $C1: generated MN_CMP/izx vs mine ('CMP', 'izx')
+opcode $C4: generated MN_CPY/zp vs mine ('CPY', 'zp')
+opcode $C5: generated MN_CMP/zp vs mine ('CMP', 'zp')
+opcode $C6: generated MN_DEC/zp vs mine ('DEC', 'zp')
+opcode $C8: generated MN_INY/imp vs mine ('INY', 'imp')
+opcode $C9: generated MN_CMP/imm vs mine ('CMP', 'imm')
+opcode $CA: generated MN_DEX/imp vs mine ('DEX', 'imp')
+opcode $CC: generated MN_CPY/abs vs mine ('CPY', 'abs')
+opcode $CD: generated MN_CMP/abs vs mine ('CMP', 'abs')
+opcode $CE: generated MN_DEC/abs vs mine ('DEC', 'abs')
+opcode $D0: generated MN_BNE/rel vs mine ('BNE', 'rel')
+opcode $D1: generated MN_CMP/izy vs mine ('CMP', 'izy')
+opcode $D5: generated MN_CMP/zpx vs mine ('CMP', 'zpx')
+opcode $D6: generated MN_DEC/zpx vs mine ('DEC', 'zpx')
+opcode $D8: generated MN_CLD/imp vs mine ('CLD', 'imp')
+opcode $D9: generated MN_CMP/aby vs mine ('CMP', 'aby')
+opcode $DD: generated MN_CMP/abx vs mine ('CMP', 'abx')
+opcode $DE: generated MN_DEC/abx vs mine ('DEC', 'abx')
+opcode $E0: generated MN_CPX/imm vs mine ('CPX', 'imm')
+opcode $E1: generated MN_SBC/izx vs mine ('SBC', 'izx')
+opcode $E4: generated MN_CPX/zp vs mine ('CPX', 'zp')
+opcode $E5: generated MN_SBC/zp vs mine ('SBC', 'zp')
+opcode $E6: generated MN_INC/zp vs mine ('INC', 'zp')
+opcode $E8: generated MN_INX/imp vs mine ('INX', 'imp')
+opcode $E9: generated MN_SBC/imm vs mine ('SBC', 'imm')
+opcode $EA: generated MN_NOP/imp vs mine ('NOP', 'imp')
+opcode $EC: generated MN_CPX/abs vs mine ('CPX', 'abs')
+opcode $ED: generated MN_SBC/abs vs mine ('SBC', 'abs')
+opcode $EE: generated MN_INC/abs vs mine ('INC', 'abs')
+opcode $F0: generated MN_BEQ/rel vs mine ('BEQ', 'rel')
+opcode $F1: generated MN_SBC/izy vs mine ('SBC', 'izy')
+opcode $F5: generated MN_SBC/zpx vs mine ('SBC', 'zpx')
+opcode $F6: generated MN_INC/zpx vs mine ('INC', 'zpx')
+opcode $F8: generated MN_SED/imp vs mine ('SED', 'imp')
+opcode $F9: generated MN_SBC/aby vs mine ('SBC', 'aby')
+opcode $FD: generated MN_SBC/abx vs mine ('SBC', 'abx')
+opcode $FE: generated MN_INC/abx vs mine ('INC', 'abx')
+opcode-table disagreements: 151
+valid opcodes: mine 151 generated 151
+> build · deepseek-v4.1-flash
+My comparison script compared `MN_BRK` against `BRK` literally. Let me fix it and confirm the opcode tables actually agree.
+[0m← [0mWrite /tmp/opencode/gaptest/falsepos.c
+Created file successfully: /tmp/opencode/gaptest/falsepos.c
+[0m$ [0mcd /home/wyn/smb_decomp/c && python3 - <<'PY'
+import re
+src=open('/tmp/opencode/adv_verify.py').read(); ns={}
+exec(src.split('# ---- translated set')[0], ns)
+OPC=ns['OPC']
+modes=["imp","acc","imm","zp","zpx","zpy","abs","abx","aby","ind","izx","izy","rel"]
+txt=open('out/ref_optable.h').read()
+mns=re.search(r'enum \{ (.*?), MN_NONE \}',txt).group(1).split(', ')
+mns=[m[3:] for m in mns]  # strip MN_
+MN=[int(x) for x in re.search(r'REF_MN\[256\] = \{([^}]*)\}',txt).group(1).split(',')]
+MD=[int(x) for x in re.search(r'REF_MODE\[256\] = \{([^}]*)\}',txt).group(1).split(',')]
+bad=0
+for op in range(256):
+    mine=OPC.get(op); gv=MN[op]!=0xFF
+    if mine is None:
+        if gv: print(f"${op:02X} gen valid {mns[MN[op]]}/{modes[MD[op]]}, mine invalid"); bad+=1
+    else:
+        if not gv or mns[MN[op]]!=mine[0] or modes[MD[op]]!=mine[1]:
+            print(f"${op:02X} gen {mns[MN[op]]}/{modes[MD[op]]} vs mine {mine}"); bad+=1
+print("opcode-table disagreements:",bad,"| valid mine",len(OPC),"gen",sum(1 for x in MN if x!=0xFF))
+PY
+opcode-table disagreements: 0 | valid mine 151 gen 151
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && gcc -O2 -std=c11 -I. -o /tmp/opencode/gaptest/falsepos /tmp/opencode/gaptest/falsepos.c out/smb_prg.c && /tmp/opencode/gaptest/falsepos
+/usr/bin/ld.bfd: /tmp/ccTTUwQy.o: in function `main':
+falsepos.c:(.text.startup+0x4f): undefined reference to `ref_successors'
+/usr/bin/ld.bfd: falsepos.c:(.text.startup+0xac): undefined reference to `ref_successors'
+collect2: error: ld returned 1 exit status
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && gcc -O2 -std=c11 -I. -o /tmp/opencode/gaptest/falsepos /tmp/opencode/gaptest/falsepos.c ref6502.c out/smb_prg.c && /tmp/opencode/gaptest/falsepos
+successor $52FD: membyte=$00 REF_MN=10 valid=1 optab=NULL targetbit=1
+successor $A538: membyte=$21 REF_MN=1 valid=1 optab=set targetbit=1
+=> if a trace reaches $52FD, difftest reports GAP even though $52FD is in RAM
+> build · deepseek-v4.1-flash
+[91m[1mError: [0mDecode error (200 POST https://opencode.ai/inference/openai/v1/chat/completions)
+> build · deepseek-v4.1-flash
+Now let me verify semantics with hand-computed expected 6502 results (not just C-vs-ref agreement, which could share a bug). First find a translated `JMP (ind)`.
+[0m$ [0mcd /home/wyn/smb_decomp && grep -nE 'JMP \(' out/smb.asm | head; echo "== opcode 6C addresses in xlt =="; python3 - <<'PY'
+import re
+rom=open('out/prg.bin','rb').read()
+xlt=[int(x,16) for x in re.findall(r'0x([0-9A-Fa-f]{4})', open('/home/wyn/smb_decomp/c/out/xlt.h').read())]
+js=[a for a in xlt if rom[a-0x8000]==0x6C]
+print("translated JMP(ind):",[hex(a) for a in js[:10]], "count",len(js))
+PY
+1291:        JMP ($0006)                ; $8E16: 6C 06 00
+== opcode 6C addresses in xlt ==
+translated JMP(ind): ['0x8e16'] count 1
+> build · deepseek-v4.1-flash
+Only one translated `JMP (ind)` (`$8E16`), but I can point it at a page-boundary pointer. Let me write hand-computed semantics tests for both the reference and the generated C.
+[0m← [0mWrite /tmp/opencode/gaptest/semtest.c
+Created file successfully: /tmp/opencode/gaptest/semtest.c
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && gcc -O2 -std=c11 -I. -o /tmp/opencode/gaptest/semtest /tmp/opencode/gaptest/semtest.c ref6502.c out/smb_prg.c && /tmp/opencode/gaptest/semtest; echo "exit=$?"
+FAIL adc.p: got 192 exp 128
+FAIL adc.p: got 65 exp 193
+FAIL adc.p: got 192 exp 128
+FAIL sbc.p: got 3 exp 2
+FAIL brk.push_hi: got 2 exp 4
+FAIL rts.pc: got 1 exp 4660
+FAIL rts.s: got 255 exp 253
+FAIL C.jmpind.pagebug: got 12543 exp 4660
+semantics: checks=45 failures=8
+exit=1
+> build · deepseek-v4.1-flash
+Several failures are my hand-computation mistakes; one reveals a test-design issue. Let me correct them and re-run.
+[0m← [0mEdit /tmp/opencode/gaptest/semtest.c
+Index: /tmp/opencode/gaptest/semtest.c
+===================================================================
+--- /tmp/opencode/gaptest/semtest.c
++++ /tmp/opencode/gaptest/semtest.c
+@@ -28,13 +28,13 @@
+     /* ---------- ADC (immediate $69) ---------- */
+     struct { u8 a, m, pin; u8 r, p; } adc[] = {
+         /* a,   m,   carry-in-p, result, expected p (C V Z N bits only, but we
+            start p = 0 so p equals those bits) */
+-        { 0x50, 0x50, 0x00, 0xA0, 0x80 }, /* 0+0: C0 V1 N1 Z0 */
++        { 0x50, 0x50, 0x00, 0xA0, 0xC0 }, /* C0 V1 N1 Z0 */
+         { 0xFF, 0x01, 0x00, 0x00, 0x03 }, /* C1 Z1 V0 N0 */
+         { 0x7F, 0x01, 0x00, 0x80, 0xC0 }, /* N1 V1 */
+-        { 0x80, 0xFF, 0x00, 0x7F, 0xC1 }, /* C1 V1 N0 */
+-        { 0x50, 0x50, 0x01, 0xA1, 0x80 }, /* carry-in */
++        { 0x80, 0xFF, 0x00, 0x7F, 0x41 }, /* C1 V1 N0 */
++        { 0x50, 0x50, 0x01, 0xA1, 0xC0 }, /* carry-in */
+     };
+     for (i = 0; i < (int)(sizeof adc / sizeof *adc); i++) {
+         memset(&c, 0, sizeof c);
+         setinsn(&c, 0x69, adc[i].m, 0);
+
+> build · deepseek-v4.1-flash
+[0m← [0mEdit /tmp/opencode/gaptest/semtest.c
+Index: /tmp/opencode/gaptest/semtest.c
+===================================================================
+--- /tmp/opencode/gaptest/semtest.c
++++ /tmp/opencode/gaptest/semtest.c
+@@ -49,9 +49,9 @@
+     struct { u8 a, m, pin; u8 r, p; } sbc[] = {
+         { 0x50, 0xF0, 0x01, 0x60, 0x00 }, /* borrow -> C0, V0, N0 */
+         { 0x00, 0x01, 0x01, 0xFF, 0x80 }, /* C0 N1 */
+         { 0x80, 0x01, 0x01, 0x7F, 0x41 }, /* C1 V1 */
+-        { 0x50, 0x50, 0x01, 0x00, 0x02 }, /* Z1 C1 */
++        { 0x50, 0x50, 0x01, 0x00, 0x03 }, /* Z1 C1 */
+         { 0xFF, 0x00, 0x00, 0xFE, 0x81 }, /* borrow-in, C1 N1 */
+     };
+     for (i = 0; i < (int)(sizeof sbc / sizeof *sbc); i++) {
+         memset(&c, 0, sizeof c);
+
+> build · deepseek-v4.1-flash
+[0m← [0mEdit /tmp/opencode/gaptest/semtest.c
+Index: /tmp/opencode/gaptest/semtest.c
+===================================================================
+--- /tmp/opencode/gaptest/semtest.c
++++ /tmp/opencode/gaptest/semtest.c
+@@ -83,9 +83,9 @@
+     c.mem[0xFFFE] = 0x00; c.mem[0xFFFF] = 0x90;
+     ref_step(&c);
+     ck("brk.pc", c.pc, 0x9000);
+     ck("brk.s", c.s, 0xFA);
+-    ck("brk.push_hi", c.mem[0x1FD], 0x04);  /* PC+2 high */
++    ck("brk.push_hi", c.mem[0x1FD], 0x02);  /* PC+2 = $0202 high */
+     ck("brk.push_lo", c.mem[0x1FC], 0x02);  /* PC+2 low  */
+     ck("brk.push_p", c.mem[0x1FB], 0x30);   /* B|U */
+     ck("brk.I", c.p & F_I, F_I);
+ 
+
+> build · deepseek-v4.1-flash
+[0m← [0mEdit /tmp/opencode/gaptest/semtest.c
+Index: /tmp/opencode/gaptest/semtest.c
+===================================================================
+--- /tmp/opencode/gaptest/semtest.c
++++ /tmp/opencode/gaptest/semtest.c
+@@ -91,9 +91,9 @@
+ 
+     /* ---------- RTS ---------- */
+     memset(&c, 0, sizeof c);
+     setinsn(&c, 0x60, 0, 0);
+-    c.s = 0xFD; c.mem[0x1FD] = 0x12; c.mem[0x1FC] = 0x33; /* pushed $1233 */
++    c.s = 0xFB; c.mem[0x1FD] = 0x12; c.mem[0x1FC] = 0x33; /* pushed $1233 */
+     ref_step(&c);
+     ck("rts.pc", c.pc, 0x1234);
+     ck("rts.s", c.s, 0xFD);
+ 
+
+> build · deepseek-v4.1-flash
+[0m← [0mEdit /tmp/opencode/gaptest/semtest.c
+Index: /tmp/opencode/gaptest/semtest.c
+===================================================================
+--- /tmp/opencode/gaptest/semtest.c
++++ /tmp/opencode/gaptest/semtest.c
+@@ -136,15 +136,18 @@
+     setinsn(&c, 0xC9, 0x40, 0); c.a = 0x40; c.p = F_V; /* equal */
+     ref_step(&c);
+     ck("cmp.equal.p", c.p, F_C|F_Z|F_V);
+ 
+-    /* ---------- Generated-C page-bug on the one real JMP (ind) ---------- */
++    /* ---------- Generated-C indirect JMP at the real translated $8E16 ----------
++     * The instruction's pointer operand is fixed at $0006, so a page-boundary
++     * pointer cannot be formed through it.  We verify the indirect read works,
++     * and (separately, by source inspection) that the emitted high-byte read
++     * uses the page-preserving mask. */
+     smb_cpu_init(&c);
+     c.pc = 0x8E16;                      /* JMP ($0006) */
+-    c.mem[0x0006] = 0xFF; c.mem[0x0007] = 0x30; /* pointer $30FF */
+-    c.mem[0x30FF] = 0x34; c.mem[0x3000] = 0x12; c.mem[0x3100] = 0x99;
++    c.mem[0x0006] = 0x56; c.mem[0x0007] = 0x78;
+     smb_cpu_step(&c);
+-    ck("C.jmpind.pagebug", c.pc, 0x1234);
++    ck("C.jmpind.normal", c.pc, 0x7856);
+ 
+     printf("semantics: checks=%d failures=%d\n", checks, failures);
+     return failures ? 1 : 0;
+ }
+
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/smb_decomp/c && gcc -O2 -std=c11 -I. -o /tmp/opencode/gaptest/semtest /tmp/opencode/gaptest/semtest.c ref6502.c out/smb_prg.c && /tmp/opencode/gaptest/semtest; echo "exit=$?"; echo "== C source: emitted JMP(ind) pattern =="; grep -o "u16 p = 0x0006;.\{0,140\}" out/smb_prg.c | head -1
+semantics: checks=45 failures=0
+exit=0
+== C source: emitted JMP(ind) pattern ==
+u16 p = 0x0006; u8 lo = c->mem[p]; u8 hi = c->mem[(u16)((p & 0xFF00) | ((p + 1) & 0xFF))]; c->pc = (u16)(lo | (hi << 8)); }
+> build · deepseek-v4.1-flash
+[91m[1mError: [0mDecode error (200 POST https://opencode.ai/inference/openai/v1/chat/completions)
+> build · deepseek-v4.1-flash
