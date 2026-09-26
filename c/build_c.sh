@@ -29,6 +29,15 @@ else
     echo "extract it from your own ROM first:  ../extract_rom.sh '/path/to/Super Mario Bros. (World).nes'"
 fi
 
+echo "== PPU command trace (decompiled CPU driving the PPU model) =="
+PRG="${SMB_PRG:-../out/prg.bin}"
+if [ -f "$PRG" ]; then
+    gcc -O2 -std=c11 -I. -o out/pputrace pputrace.c ppu.c out/smb_prg.c
+    ./out/pputrace "$PRG" | head -40
+else
+    echo "skipped: no PRG image at $PRG"
+fi
+
 echo "== architectures =="
 file out/smb_prg_x64.o out/smb_prg_arm64.o
 echo "OK"

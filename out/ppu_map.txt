@@ -1,0 +1,74 @@
+PPU register access map (static)
+=================================
+
+The NES PPU is fixed-function: there is no GPU instruction set.
+The CPU programs it through these registers. Sites below are
+direct absolute accesses in the matching disassembly; SMB also
+writes PPUADDR/PPUDATA through the VRAM upload routine at $8E92.
+
+PPUCTRL ($2000) -- 5 site(s))
+    $8004  STA PPUCTRL  (write)
+    $808C  STA PPUCTRL  (write)
+    $816C  STA PPUCTRL  (write)
+    $817E  STA PPUCTRL  (write)
+    $8EED  STA PPUCTRL  (write)
+
+PPUMASK ($2001) -- 3 site(s))
+    $8043  STA PPUMASK  (write)
+    $80A3  STA PPUMASK  (write)
+    $80E1  STA PPUMASK  (write)
+
+PPUSTATUS ($2002) -- 8 site(s))
+    $800A  LDA PPUSTATUS  (read)
+    $800F  LDA PPUSTATUS  (read)
+    $80A6  LDX PPUSTATUS  (read)
+    $813D  LDA PPUSTATUS  (read)
+    $8150  LDA PPUSTATUS  (read)
+    $8178  LDA PPUSTATUS  (read)
+    $8E19  LDA PPUSTATUS  (read)
+    $8EDD  LDX PPUSTATUS  (read)
+
+OAMADDR ($2003) -- 1 site(s))
+    $80AE  STA OAMADDR  (write)
+
+PPUSCROLL ($2005) -- 4 site(s))
+    $815F  STA PPUSCROLL  (write)
+    $8165  STA PPUSCROLL  (write)
+    $8EE6  STA PPUSCROLL  (write)
+    $8EE9  STA PPUSCROLL  (write)
+
+PPUADDR ($2006) -- 10 site(s))
+    $8706  STA PPUADDR  (write)
+    $870B  STA PPUADDR  (write)
+    $8E2D  STA PPUADDR  (write)
+    $8E32  STA PPUADDR  (write)
+    $8E92  STA PPUADDR  (write)
+    $8E98  STA PPUADDR  (write)
+    $8ECF  STA PPUADDR  (write)
+    $8ED4  STA PPUADDR  (write)
+    $8ED7  STA PPUADDR  (write)
+    $8EDA  STA PPUADDR  (write)
+
+PPUDATA ($2007) -- 5 site(s))
+    $8716  LDA PPUDATA  (read)
+    $8719  LDA PPUDATA  (read)
+    $8E3B  STA PPUDATA  (write)
+    $8E4D  STA PPUDATA  (write)
+    $8EBB  STA PPUDATA  (write)
+
+OAMDMA ($4014) -- 1 site(s))
+    $80B3  STA OAMDMA  (write)
+
+total direct sites: 37
+
+Key routines (from the disassembly):
+  $8E2D  clear/load a VRAM block: PPUADDR=$2400, then 768x PPUDATA=$24
+         and 64x PPUDATA=$00 (nametable/attribute fill)
+  $8E92  VRAM upload interpreter: takes a pointer in $00/$01, sets
+         PPUADDR, selects the PPUCTRL increment, and streams bytes to
+         PPUDATA with a run-length count
+  $8EE6  set PPUADDR high/low from A
+  $8EED  write PPUCTRL from A
+  $8E5C  read both controllers via the $4016 strobe/shift sequence
+  NMI at $8082: writes PPUCTRL/$2001/$2003, OAMDMA from $0200, then
+         OAM/scroll/VRAM updates

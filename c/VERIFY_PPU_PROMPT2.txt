@@ -1,0 +1,22 @@
+Re-verify the PPU model after your previous FAIL. Be very concise (no large
+test suites).
+
+Working dir: /home/wyn/LLMario/c
+
+Fixes applied since your report:
+- ppu.c now has pal_index() aliasing $3F10/$3F14/$3F18/$3F1C onto
+  $3F00/$3F04/$3F08/$3F0C for both writes and reads.
+- PAINT: palette PPUDATA reads now return the palette byte immediately and
+  reload the buffer from vram[a & 0x7FF] instead of returning the stale buffer.
+- Documentation count corrected from 768 to 960 (the $8E2D fill).
+- The I/O hooks were narrowed to $2000-$3FFF and $4014 only, so APU/controller
+  addresses are no longer swallowed by the PPU model.
+
+Do, and then stop:
+1. Re-run your palette counterexample (ppu.c): confirm $3F10 aliases $3F00, and
+   that a palette PPUDATA read returns data immediately.
+2. Confirm ./build_c.sh still reports `mismatches=0 gaps=0` and builds x86-64 +
+   aarch64.
+3. State whether any documented register-semantics bug remains.
+
+Report PASS or FAIL with the key output.

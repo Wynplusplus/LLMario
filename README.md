@@ -30,6 +30,7 @@ LLMario/
 ├── gen.py                    disassembly generator (needs Ghidra map + PRG)
 ├── smb.cfg                   ld65 config: 32 KiB segment loaded at $8000
 ├── build.sh                  assemble the disassembly and cmp against the ROM
+├── ppu.py                    static map of the ROM's PPU register programming
 ├── ghidra/
 │   ├── SeedExec.java         mark the raw block executable + add entry points
 │   ├── AnalyzeDump.java      recursive disassembly + export a code/data map
@@ -40,6 +41,8 @@ LLMario/
 ├── c/
 │   ├── cpu.h                 CPU state: registers, flags, 64 KiB memory
 │   ├── gen_c.py              C generator (reads the verified smb.asm)
+│   ├── ppu.h / ppu.c         NES PPU register model + command logger
+│   ├── pputrace.c            runs the CPU through the PPU, prints the stream
 │   ├── ref6502.c             independent 6502 interpreter (test reference)
 │   ├── difftest.c            differential test: C vs the interpreter
 │   ├── build_c.sh            build x86-64 + aarch64 and run the diff test
@@ -265,6 +268,46 @@ archives). Because the code is freestanding, Zig needs no target sysroot.
 
 ---
 
+## Part C — the "GPU": decompiling the PPU interface
+
+There is no GPU instruction set on the NES. The **PPU is fixed-function**; the
+CPU programs it through eight registers (`$2000-$2007`) plus `$4014` (OAM DMA).
+So the "GPU instructions" are a register-level **command stream**, and this part
+extracts and models it.
+
+**Static map** (`ppu.py` → `out/ppu_map.txt`) lists every PPU register access in
+the disassembly and identifies the key routines:
+
+* `$8E2D` — block fill: `PPUADDR=$2400`, then 960× `PPUDATA=$24`, 64× `=$00`.
+* `$8E92` — the **VRAM upload interpreter** (SMB's display-list player): takes a
+  pointer, writes `PPUADDR`, selects the `PPUCTRL` increment, and streams bytes
+  to `PPUDATA` with a run length. The game's tilemap/pattern uploads go through
+  it.
+* `$8EE6` writes `PPUSCROLL`, `$8EED` writes `PPUCTRL`, `$8E5C` reads the
+  controllers, and the NMI at `$8082` does `OAMDMA` from `$0200` each frame.
+
+**Runtime model and trace.** `gen_c.py` routes accesses to $2000-$3FFF plus $4014
+through `g_io_write`/`g_io_read` hooks (NULL by default, so the differential
+test is unaffected). `ppu.c` implements the register interface — `PPUADDR`
+write toggle, VRAM auto-increment, buffered `PPUDATA` reads, palette mirroring,
+OAM DMA and a command log. `pputrace.c` runs the decompiled CPU's reset to the
+NMI wait, then one NMI frame, and prints the captured program:
+
+```
+reset ran 19317 steps, reached $8057
+NMI ran 24375 steps
+  PPUCTRL = $10 ; PPUMASK = $06
+  PPUADDR = $2400 ; PPUDATA[$2400] <- $24 (x960) ; PPUDATA[$27C0] <- $00 (x64)
+  PPUSCROLL = $00 ; PPUSCROLL = $00
+  PPUADDR = $2000 ; PPUDATA[$2000] <- $24 (x960) ...
+  OAMADDR = $00 ; OAMDMA page $0200 (256 bytes) ...
+```
+
+Details in `c/PPU.md`. This is a register/command model, not yet a
+cycle-accurate or rendering PPU.
+
+---
+
 ## Verification by a second LLM (up to five rounds)
 
 The task brief required using a separate OpenCode session running the same model
@@ -301,9 +344,10 @@ Full transcripts: `c/VERIFY_ITER1.txt`, `c/VERIFY_ITER2.txt`,
 * This is an **instruction-level (lifted) C decompilation**: faithful to the
   machine semantics, but it does not recover original function/variable names
   or produce structured high-level code.
-* Only the **CPU** is modelled. The NES PPU (graphics), APU (sound) and
-  controller ports are not emulated, so this is not a standalone playable game;
-  reads/writes to `$2000-$4017` are plain memory accesses.
+* The **CPU is fully modelled**, and the **PPU register interface** is modelled
+  (Part C) with a captured command stream. The APU (sound), controller-timing
+  and a cycle-accurate *rendering* PPU are not implemented, so this is not yet
+  a standalone playable game.
 * Decimal mode (`SED`) is intentionally treated as binary. Super Mario Bros.
   does not use decimal mode; the reference interpreter matches.
 * Code reachable only through runtime-computed pointers may remain embedded as

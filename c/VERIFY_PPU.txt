@@ -1,0 +1,1848 @@
+[0m
+> build · deepseek-v4.1-flash
+I'll start by exploring the repository structure and the relevant files.
+[0m$ [0mcat /home/wyn/LLMario/c/ppu.h 2>/dev/null; echo "===PPU.C==="; cat /home/wyn/LLMario/c/ppu.c 2>/dev/null
+/* A fixed-function NES PPU register model.
+ *
+ * The NES PPU has no instruction set: the CPU programs it by writing eight
+ * memory-mapped registers ($2000-$2007) and $4014 (OAM DMA). This model
+ * implements that interface (address latch, auto-increment, buffered data
+ * reads, OAM DMA, palette/VRAM mirroring) and records the command stream the
+ * decompiled CPU issues, so the game's "GPU program" can be inspected.
+ */
+#ifndef PPU_H
+#define PPU_H
+
+#include "cpu.h"
+
+enum {
+    PPU_CTRL, PPU_MASK, PPU_SCROLL, PPU_ADDR, PPU_OAMADDR, PPU_OAMDMA,
+    PPU_DATA_W, PPU_DATA_R, PPU_STATUS_R
+};
+
+#define PPU_LOG_MAX 40000
+
+typedef struct { u8 kind; u16 addr; u8 val; int count; } PpuLogEntry;
+
+typedef struct {
+    u8 ctrl, mask, status, oam_addr;
+    u8 oam[256];
+    u8 vram[0x800];     /* 2 KiB nametables */
+    u8 palette[0x20];
+    u16 v;              /* current VRAM address (14-bit) */
+    u8 w;               /* first/second write toggle */
+    u8 read_buf;
+    /* command log */
+    int log_n;
+    PpuLogEntry log[PPU_LOG_MAX];
+} Ppu;
+
+void ppu_init(Ppu *p);
+/* Install this PPU into the generated CPU's I/O hooks. */
+void ppu_attach(Ppu *p);
+u8 ppu_read(Ppu *p, Cpu *c, u16 addr);
+void ppu_write(Ppu *p, Cpu *c, u16 addr, u8 val);
+
+#endif
+===PPU.C===
+/* NES PPU register model + command logger. See ppu.h. */
+#include "ppu.h"
+
+extern void (*g_io_write)(Cpu *, u16, u8);
+extern u8 (*g_io_read)(Cpu *, u16);
+
+static Ppu *g_ppu;
+
+static void log_add(Ppu *p, u8 kind, u16 addr, u8 val) {
+    if (p->log_n > 0) {
+        PpuLogEntry *last = &p->log[p->log_n - 1];
+        if (kind == PPU_DATA_W && last->kind == PPU_DATA_W &&
+            last->val == val && (u16)(last->addr + last->count) == addr) {
+            last->count++;
+            return;
+        }
+    }
+    if (p->log_n < PPU_LOG_MAX) {
+        p->log[p->log_n].kind = kind;
+        p->log[p->log_n].addr = addr;
+        p->log[p->log_n].val = val;
+        p->log[p->log_n].count = 1;
+        p->log_n++;
+    }
+}
+
+void ppu_init(Ppu *p) {
+    int i;
+    for (i = 0; i < (int)sizeof(*p); i++) ((u8 *)p)[i] = 0;
+    p->v = 0;
+    p->w = 0;
+}
+
+static u8 io_read_hook(Cpu *c, u16 addr) {
+    return ppu_read(g_ppu, c, addr);
+}
+static void io_write_hook(Cpu *c, u16 addr, u8 val) {
+    ppu_write(g_ppu, c, addr, val);
+}
+
+void ppu_attach(Ppu *p) {
+    g_ppu = p;
+    g_io_read = io_read_hook;
+    g_io_write = io_write_hook;
+}
+
+static void ppu_write_data(Ppu *p, u8 val) {
+    u16 a = p->v & 0x3FFF;
+    if (a >= 0x3F00) {
+        p->palette[(a - 0x3F00) & 0x1F] = val;
+    } else {
+        p->vram[a & 0x07FF] = val;
+    }
+    log_add(p, PPU_DATA_W, a, val);
+    p->v = (u16)(p->v + ((p->ctrl & 0x04) ? 32 : 1));
+}
+
+u8 ppu_read(Ppu *p, Cpu *c, u16 addr) {
+    (void)c;
+    switch (addr & 0x2007) {
+    case 0x2002: {
+        /* VBlank is reported set so the game's frame polling makes progress;
+         * reading it clears the write toggle, as on hardware. */
+        u8 s = (u8)(p->status | 0x80);
+        p->w = 0;
+        log_add(p, PPU_STATUS_R, 0x2002, s);
+        return s;
+    }
+    case 0x2007: {
+        u16 a = p->v & 0x3FFF;
+        u8 r = p->read_buf;
+        p->read_buf = (a >= 0x3F00) ? p->palette[(a - 0x3F00) & 0x1F]
+                                    : p->vram[a & 0x07FF];
+        p->v = (u16)(p->v + ((p->ctrl & 0x04) ? 32 : 1));
+        log_add(p, PPU_DATA_R, a, r);
+        return r;
+    }
+    default:
+        return 0xFF;
+    }
+}
+
+void ppu_write(Ppu *p, Cpu *c, u16 addr, u8 val) {
+    switch (addr & 0x2007) {
+    case 0x2000:
+        p->ctrl = val;
+        log_add(p, PPU_CTRL, 0x2000, val);
+        break;
+    case 0x2001:
+        p->mask = val;
+        log_add(p, PPU_MASK, 0x2001, val);
+        break;
+    case 0x2003:
+        p->oam_addr = val;
+        log_add(p, PPU_OAMADDR, 0x2003, val);
+        break;
+    case 0x2004:
+        p->oam[p->oam_addr++] = val;
+        break;
+    case 0x2005:
+        log_add(p, PPU_SCROLL, 0x2005, val);
+        break;
+    case 0x2006:
+        if (!p->w) {
+            p->v = (u16)((val & 0x3F) << 8);
+        } else {
+            p->v = (u16)((p->v & 0x3F00) | val);
+            log_add(p, PPU_ADDR, p->v, 0);
+        }
+        p->w = (u8)!p->w;
+        break;
+    case 0x2007:
+        ppu_write_data(p, val);
+        break;
+    default:
+        break;
+    }
+    if (addr == 0x4014) {
+        /* OAM DMA: copy 256 bytes from CPU page val<<8 into OAM. */
+        u16 src = (u16)(val << 8);
+        int i;
+        for (i = 0; i < 256; i++) p->oam[(p->oam_addr + i) & 0xFF] = c->mem[src + i];
+        log_add(p, PPU_OAMDMA, src, val);
+    }
+}
+[0m$ [0mls -la /home/wyn/LLMario/c/ && echo "---OUT---" && ls -la /home/wyn/LLMario/out/ && echo "---ROOT---" && ls -la /home/wyn/LLMario/
+total 248
+drwxr-xr-x. 1 wyn wyn   494 Sep 26 21:11 .
+drwxr-xr-x. 1 wyn wyn   156 Sep 26 21:09 ..
+-rwxr-xr-x. 1 wyn wyn  1438 Sep 26 21:09 build_c.sh
+-rw-r--r--. 1 wyn wyn   892 Sep 26 18:53 cpu.h
+-rw-r--r--. 1 wyn wyn  6526 Sep 26 20:48 difftest.c
+-rw-r--r--. 1 wyn wyn 17452 Sep 26 21:09 gen_c.py
+drwxr-xr-x. 1 wyn wyn   210 Sep 26 21:10 out
+-rw-r--r--. 1 wyn wyn  3305 Sep 26 21:09 ppu.c
+-rw-r--r--. 1 wyn wyn  1249 Sep 26 21:09 ppu.h
+-rw-r--r--. 1 wyn wyn  3779 Sep 26 21:09 PPU.md
+-rw-r--r--. 1 wyn wyn  2837 Sep 26 21:09 pputrace.c
+-rw-r--r--. 1 wyn wyn  4219 Sep 26 20:49 README.md
+-rw-r--r--. 1 wyn wyn  8905 Sep 26 19:26 ref6502.c
+-rw-r--r--. 1 wyn wyn  2412 Sep 26 20:36 VERIFICATION.md
+-rw-r--r--. 1 wyn wyn 81018 Sep 26 19:23 VERIFY_ITER1.txt
+-rw-r--r--. 1 wyn wyn 43241 Sep 26 20:09 VERIFY_ITER2.txt
+-rw-r--r--. 1 wyn wyn 22193 Sep 26 20:35 VERIFY_ITER3.txt
+-rw-r--r--. 1 wyn wyn  3486 Sep 26 20:35 VERIFY_ITER4.txt
+-rw-r--r--. 1 wyn wyn  1890 Sep 26 21:11 VERIFY_PPU_PROMPT.txt
+-rw-r--r--. 1 wyn wyn   109 Sep 26 21:11 VERIFY_PPU.txt
+-rw-r--r--. 1 wyn wyn  2077 Sep 26 19:29 VERIFY_PROMPT2.txt
+-rw-r--r--. 1 wyn wyn  1705 Sep 26 20:12 VERIFY_PROMPT3.txt
+-rw-r--r--. 1 wyn wyn  2707 Sep 26 19:02 VERIFY_PROMPT.txt
+---OUT---
+total 1216
+drwxr-xr-x. 1 wyn wyn    202 Sep 26 21:09 .
+drwxr-xr-x. 1 wyn wyn    156 Sep 26 21:09 ..
+-rw-r--r--. 1 wyn wyn   8192 Sep 26 20:52 chr.bin
+-rw-r-----. 1 wyn wyn 294115 Sep 26 18:11 ghidra_map.txt
+-rw-r--r--. 1 wyn wyn     16 Sep 26 20:52 header.bin
+-rw-r--r--. 1 wyn wyn   2372 Sep 26 21:09 ppu_map.txt
+-rw-r--r--. 1 wyn wyn  32768 Sep 26 20:52 prg.bin
+-rw-r--r--. 1 wyn wyn  32768 Sep 26 20:52 prg_rebuilt.bin
+-rw-r--r--. 1 wyn wyn     65 Sep 26 20:52 prg.sha256
+-rw-r--r--. 1 wyn wyn 587056 Sep 26 20:50 smb.asm
+-rw-r--r--. 1 wyn wyn 225284 Sep 26 20:52 smb.o
+-rw-r--r--. 1 wyn wyn  40976 Sep 26 20:52 smb_rebuilt.nes
+---ROOT---
+total 44
+drwxr-xr-x. 1 wyn wyn   156 Sep 26 21:09 .
+drwx------. 1 wyn wyn   658 Sep 26 20:51 ..
+-rwxr-xr-x. 1 wyn wyn   936 Sep 26 20:50 build.sh
+drwxr-xr-x. 1 wyn wyn   494 Sep 26 21:11 c
+drwxr-xr-x. 1 wyn wyn   210 Sep 26 20:51 docs
+-rwxr-xr-x. 1 wyn wyn  1231 Sep 26 20:50 extract_rom.sh
+-rw-r--r--. 1 wyn wyn  7765 Sep 26 20:49 gen.py
+drwxr-xr-x. 1 wyn wyn    82 Sep 26 20:51 ghidra
+drwxr-xr-x. 1 wyn wyn   128 Sep 26 20:54 .git
+-rw-r--r--. 1 wyn wyn   358 Sep 26 20:52 .gitignore
+drwxr-xr-x. 1 wyn wyn   202 Sep 26 21:09 out
+-rw-r--r--. 1 wyn wyn  3133 Sep 26 21:09 ppu.py
+-rw-r--r--. 1 wyn wyn 16271 Sep 26 21:10 README.md
+-rw-r--r--. 1 wyn wyn   128 Sep 26 18:17 smb.cfg
+> build · deepseek-v4.1-flash
+Let me read the key files: gen_c.py, pputrace.c, difftest.c, build_c.sh, and the reference ppu.py.
+[0m$ [0mcat /home/wyn/LLMario/c/pputrace.c; echo "=====BUILD_C.SH====="; cat /home/wyn/LLMario/c/build_c.sh; echo "=====PPU.PY====="; cat /home/wyn/LLMario/ppu.py
+/* Run the decompiled CPU through the PPU model and print the command stream.
+ *
+ *   pputrace [prg.bin]
+ *
+ * The CPU's reset routine runs until it reaches the NMI wait loop, then one
+ * NMI frame is executed. Every PPU register write (and OAM DMA) is logged, so
+ * this is the game's "GPU program" as seen at the register level.
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "cpu.h"
+#include "ppu.h"
+
+extern CpuOp optab[0x10000];
+extern void smb_cpu_init(Cpu *c, const u8 *prg);
+extern int smb_cpu_step(Cpu *c);
+
+static u8 PRG[0x8000];
+static Ppu ppu;
+
+static const char *kind_name(u8 k) {
+    switch (k) {
+    case PPU_CTRL: return "PPUCTRL   ";
+    case PPU_MASK: return "PPUMASK   ";
+    case PPU_SCROLL: return "PPUSCROLL ";
+    case PPU_ADDR: return "PPUADDR   ";
+    case PPU_OAMADDR: return "OAMADDR   ";
+    case PPU_OAMDMA: return "OAMDMA    ";
+    case PPU_DATA_W: return "PPUDATA<- ";
+    case PPU_DATA_R: return "PPUDATA-> ";
+    default: return "PPUSTATUS ";
+    }
+}
+
+static int load_prg(const char *path) {
+    FILE *f = fopen(path, "rb");
+    size_t n;
+    if (!f) return 0;
+    n = fread(PRG, 1, 0x8000, f);
+    fclose(f);
+    return n == 0x8000;
+}
+
+int main(int argc, char **argv) {
+    Cpu c;
+    const char *path = (argc > 1) ? argv[1] : getenv("SMB_PRG");
+    long steps = 0;
+    int i;
+
+    if (!path) path = "../out/prg.bin";
+    if (!load_prg(path)) {
+        fprintf(stderr, "pputrace: cannot read PRG from '%s' (see README)\n", path);
+        return 2;
+    }
+
+    smb_cpu_init(&c, PRG);
+    ppu_init(&ppu);
+    ppu_attach(&ppu);
+    c.pc = 0x8000;
+
+    /* Reset: run until the program settles into the `JMP $8057` NMI wait. */
+    while (steps < 500000 && optab[c.pc] && c.pc != 0x8057) {
+        smb_cpu_step(&c);
+        steps++;
+    }
+    printf("reset ran %ld steps, reached $%04X\n", steps, c.pc);
+
+    /* One NMI frame. */
+    c.pc = 0x8082;
+    for (i = 0; i < 300000 && optab[c.pc]; i++)
+        smb_cpu_step(&c);
+    printf("NMI ran %d steps\n\n", i);
+
+    printf("=== PPU command stream (in order) ===\n");
+    for (i = 0; i < ppu.log_n; i++) {
+        u8 k = ppu.log[i].kind;
+        u16 a = ppu.log[i].addr;
+        u8 v = ppu.log[i].val;
+        int n = ppu.log[i].count;
+        if (k == PPU_DATA_W) {
+            printf("  %s[$%04X] <- $%02X", kind_name(k), a, v);
+            if (n > 1) printf("  (x%d)", n);
+            printf("\n");
+        } else if (k == PPU_DATA_R)
+            printf("  %s[$%04X] -> $%02X\n", kind_name(k), a, v);
+        else if (k == PPU_OAMDMA)
+            printf("  %s page $%04X (256 bytes)\n", kind_name(k), a);
+        else if (k == PPU_ADDR)
+            printf("  %s = $%04X\n", kind_name(k), a);
+        else
+            printf("  %s = $%02X\n", kind_name(k), v);
+    }
+    printf("\ncommands logged: %d\n", ppu.log_n);
+    return 0;
+}
+=====BUILD_C.SH=====
+#!/bin/sh
+# Build the decompiled C for x86-64 and aarch64, and run the differential test.
+set -e
+cd "$(dirname "$0")"
+
+ZIG="${ZIG:-/tmp/opencode/zig/zig}"
+command -v gcc >/dev/null || { echo "gcc not found"; exit 1; }
+[ -x "$ZIG" ] || { echo "zig not found (set ZIG=/path/to/zig)"; exit 1; }
+
+echo "== generating out/smb_prg.c =="
+python3 gen_c.py
+
+echo "== x86_64 object =="
+gcc -O1 -std=c11 -I. -c out/smb_prg.c -o out/smb_prg_x64.o
+ar rcs out/libsmb_prg_x64.a out/smb_prg_x64.o
+
+echo "== aarch64 object =="
+"$ZIG" cc -target aarch64-linux-gnu -O1 -std=c11 -I. -ffreestanding -nostdlib \
+    -c out/smb_prg.c -o out/smb_prg_arm64.o
+ar rcs out/libsmb_prg_arm64.a out/smb_prg_arm64.o
+
+echo "== differential test (decompiled C vs independent interpreter) =="
+PRG="${SMB_PRG:-../out/prg.bin}"
+if [ -f "$PRG" ]; then
+    gcc -O2 -std=c11 -I. -o out/difftest difftest.c ref6502.c out/smb_prg.c
+    ./out/difftest "$PRG"
+else
+    echo "skipped: no PRG image at $PRG"
+    echo "extract it from your own ROM first:  ../extract_rom.sh '/path/to/Super Mario Bros. (World).nes'"
+fi
+
+echo "== PPU command trace (decompiled CPU driving the PPU model) =="
+PRG="${SMB_PRG:-../out/prg.bin}"
+if [ -f "$PRG" ]; then
+    gcc -O2 -std=c11 -I. -o out/pputrace pputrace.c ppu.c out/smb_prg.c
+    ./out/pputrace "$PRG" | head -40
+else
+    echo "skipped: no PRG image at $PRG"
+fi
+
+echo "== architectures =="
+file out/smb_prg_x64.o out/smb_prg_arm64.o
+echo "OK"
+=====PPU.PY=====
+#!/usr/bin/env python3
+"""Static map of the ROM's PPU programming -- the game's "GPU program".
+
+The NES PPU has no instruction set; the CPU programs it through the registers
+$2000-$2007 and $4014. This tool lists every such access in the matching
+disassembly, grouped by register, and writes out/ppu_map.txt.
+"""
+import os
+import re
+import collections
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+ASM = os.path.join(ROOT, "out/smb.asm")
+OUT = os.path.join(ROOT, "out/ppu_map.txt")
+
+REGS = {
+    0x2000: "PPUCTRL", 0x2001: "PPUMASK", 0x2002: "PPUSTATUS",
+    0x2003: "OAMADDR", 0x2004: "OAMDATA", 0x2005: "PPUSCROLL",
+    0x2006: "PPUADDR", 0x2007: "PPUDATA", 0x4014: "OAMDMA",
+}
+READ_OPS = {"LDA", "LDX", "LDY", "BIT", "CMP", "ORA", "AND", "EOR", "ADC", "SBC"}
+WRITE_OPS = {"STA", "STX", "STY", "INC", "DEC", "ASL", "LSR", "ROL", "ROR"}
+
+sites = collections.defaultdict(list)   # reg -> list of (addr, mn, dir)
+for line in open(ASM):
+    m = re.match(r"\s+([A-Z]{3})\s+(.*?)\s*;\s*\$([0-9A-F]{4}):", line)
+    if not m:
+        continue
+    mn, oper, addr = m.group(1), m.group(2), int(m.group(3), 16)
+    mm = re.search(r"\$([0-9A-F]{4})", oper)
+    if not mm:
+        continue
+    a = int(mm.group(1), 16)
+    if a in REGS:
+        if mn in WRITE_OPS:
+            sites[REGS[a]].append((addr, mn, "w"))
+        elif mn in READ_OPS:
+            sites[REGS[a]].append((addr, mn, "r"))
+
+lines = []
+lines.append("PPU register access map (static)")
+lines.append("=================================")
+lines.append("")
+lines.append("The NES PPU is fixed-function: there is no GPU instruction set.")
+lines.append("The CPU programs it through these registers. Sites below are")
+lines.append("direct absolute accesses in the matching disassembly; SMB also")
+lines.append("writes PPUADDR/PPUDATA through the VRAM upload routine at $8E92.")
+lines.append("")
+total = 0
+for reg_addr, name in REGS.items():
+    rows = sorted(sites.get(name, []))
+    if not rows:
+        continue
+    lines.append(f"{name} (${reg_addr:04X}) -- {len(rows)} site(s)")
+    for addr, mn, d in rows:
+        lines.append(f"    ${addr:04X}  {mn} {name}  ({'write' if d == 'w' else 'read'})")
+    lines.append("")
+    total += len(rows)
+lines.append(f"total direct sites: {total}")
+lines.append("")
+lines.append("Key routines (from the disassembly):")
+lines.append("  $8E2D  clear/load a VRAM block: PPUADDR=$2400, then 768x PPUDATA=$24")
+lines.append("         and 64x PPUDATA=$00 (nametable/attribute fill)")
+lines.append("  $8E92  VRAM upload interpreter: takes a pointer in $00/$01, sets")
+lines.append("         PPUADDR, selects the PPUCTRL increment, and streams bytes to")
+lines.append("         PPUDATA with a run-length count")
+lines.append("  $8EE6  set PPUSCROLL from A (writes $2005 twice)")
+lines.append("  $8EED  write PPUCTRL from A")
+lines.append("  $8E5C  read both controllers via the $4016 strobe/shift sequence")
+lines.append("  NMI at $8082: writes PPUCTRL/PPUMASK/OAMADDR, OAMDMA from $0200, then")
+lines.append("         OAM/scroll/VRAM updates")
+
+open(OUT, "w").write("\n".join(lines) + "\n")
+print("\n".join(lines))
+print(f"\nwrote {OUT}")
+[0m$ [0mcat /home/wyn/LLMario/c/VERIFY_PPU_PROMPT.txt; echo "=====VERIFY_PPU.TXT====="; cat /home/wyn/LLMario/c/VERIFY_PPU.txt; echo "=====VERIFICATION.MD====="; cat /home/wyn/LLMario/c/VERIFICATION.md
+You are verifying a new part of an LLM-made Super Mario Bros. decompilation: the
+NES PPU ("GPU") interface. Be concise and time-boxed; do not write large suites.
+
+Working dir: /home/wyn/LLMario/c  (this is the repository copy that will be pushed)
+Also available: ../out/smb.asm, ../out/prg.bin (extract with ../extract_rom.sh),
+../ppu.py, ../out/ppu_map.txt.
+
+Claim under test: the NES has no GPU instruction set; its PPU is fixed-function
+and programmed through registers $2000-$2007 and $4014. This work decompiles that
+command interface: ppu.h/ppu.c model the registers and log commands, pputrace.c
+runs the decompiled CPU through the model, and gen_c.py routes $2000-$401F
+accesses through g_io_write/g_io_read hooks.
+
+Verify, adversarially:
+1. Is the central claim correct? (The NES PPU has no instruction set.) Say so
+   plainly if it is wrong.
+2. Check ppu.c register semantics against documented NES behaviour: PPUADDR
+   two-write latch, PPUDATA auto-increment from PPUCTRL bit 2, buffered PPUDATA
+   read, palette/VRAM mirroring, PPUSTATUS read clearing the write toggle,
+   OAMDMA copying 256 bytes from CPU page, OAMADDR/OAMDATA. Report any
+   incorrect behaviour.
+3. Confirm the hook refactor did not change CPU semantics: build and run
+   ./build_c.sh and confirm the differential test still reports
+   `mismatches=0 gaps=0`.
+4. Sanity-check the trace: run `./out/pputrace ../out/prg.bin` (build it if
+   needed) and check the command stream against the ROM. In particular confirm
+   from ../out/smb.asm that the routine at $8E2D sets PPUADDR=$2400 and writes
+   768x $24 then 64x $00, and that the NMI at $8082 issues OAMDMA from $0200.
+   Flag any command in the trace that the disassembly does not justify.
+5. Note any limitation that makes the trace misleading.
+
+Report PASS or FAIL, key command output, any counterexample, and if FAIL the
+precise files/functions to fix.
+=====VERIFY_PPU.TXT=====
+[0m
+> build · deepseek-v4.1-flash
+I'll start by exploring the repository structure and the relevant files.
+[0m$ [0mcat /home/wyn/LLMario/c/ppu.h 2>/dev/null; echo "===PPU.C==="; cat /home/wyn/LLMario/c/ppu.c 2>/dev/null
+/* A fixed-function NES PPU register model.
+ *
+ * The NES PPU has no instruction set: the CPU programs it by writing eight
+ * memory-mapped registers ($2000-$2007) and $4014 (OAM DMA). This model
+ * implements that interface (address latch, auto-increment, buffered data
+ * reads, OAM DMA, palette/VRAM mirroring) and records the command stream the
+ * decompiled CPU issues, so the game's "GPU program" can be inspected.
+ */
+#ifndef PPU_H
+#define PPU_H
+
+#include "cpu.h"
+
+enum {
+    PPU_CTRL, PPU_MASK, PPU_SCROLL, PPU_ADDR, PPU_OAMADDR, PPU_OAMDMA,
+    PPU_DATA_W, PPU_DATA_R, PPU_STATUS_R
+};
+
+#define PPU_LOG_MAX 40000
+
+typedef struct { u8 kind; u16 addr; u8 val; int count; } PpuLogEntry;
+
+typedef struct {
+    u8 ctrl, mask, status, oam_addr;
+    u8 oam[256];
+    u8 vram[0x800];     /* 2 KiB nametables */
+    u8 palette[0x20];
+    u16 v;              /* current VRAM address (14-bit) */
+    u8 w;               /* first/second write toggle */
+    u8 read_buf;
+    /* command log */
+    int log_n;
+    PpuLogEntry log[PPU_LOG_MAX];
+} Ppu;
+
+void ppu_init(Ppu *p);
+/* Install this PPU into the generated CPU's I/O hooks. */
+void ppu_attach(Ppu *p);
+u8 ppu_read(Ppu *p, Cpu *c, u16 addr);
+void ppu_write(Ppu *p, Cpu *c, u16 addr, u8 val);
+
+#endif
+===PPU.C===
+/* NES PPU register model + command logger. See ppu.h. */
+#include "ppu.h"
+
+extern void (*g_io_write)(Cpu *, u16, u8);
+extern u8 (*g_io_read)(Cpu *, u16);
+
+static Ppu *g_ppu;
+
+static void log_add(Ppu *p, u8 kind, u16 addr, u8 val) {
+    if (p->log_n > 0) {
+        PpuLogEntry *last = &p->log[p->log_n - 1];
+        if (kind == PPU_DATA_W && last->kind == PPU_DATA_W &&
+            last->val == val && (u16)(last->addr + last->count) == addr) {
+            last->count++;
+            return;
+        }
+    }
+    if (p->log_n < PPU_LOG_MAX) {
+        p->log[p->log_n].kind = kind;
+        p->log[p->log_n].addr = addr;
+        p->log[p->log_n].val = val;
+        p->log[p->log_n].count = 1;
+        p->log_n++;
+    }
+}
+
+void ppu_init(Ppu *p) {
+    int i;
+    for (i = 0; i < (int)sizeof(*p); i++) ((u8 *)p)[i] = 0;
+    p->v = 0;
+    p->w = 0;
+}
+
+static u8 io_read_hook(Cpu *c, u16 addr) {
+    return ppu_read(g_ppu, c, addr);
+}
+static void io_write_hook(Cpu *c, u16 addr, u8 val) {
+    ppu_write(g_ppu, c, addr, val);
+}
+
+void ppu_attach(Ppu *p) {
+    g_ppu = p;
+    g_io_read = io_read_hook;
+    g_io_write = io_write_hook;
+}
+
+static void ppu_write_data(Ppu *p, u8 val) {
+    u16 a = p->v & 0x3FFF;
+    if (a >= 0x3F00) {
+        p->palette[(a - 0x3F00) & 0x1F] = val;
+    } else {
+        p->vram[a & 0x07FF] = val;
+    }
+    log_add(p, PPU_DATA_W, a, val);
+    p->v = (u16)(p->v + ((p->ctrl & 0x04) ? 32 : 1));
+}
+
+u8 ppu_read(Ppu *p, Cpu *c, u16 addr) {
+    (void)c;
+    switch (addr & 0x2007) {
+    case 0x2002: {
+        /* VBlank is reported set so the game's frame polling makes progress;
+         * reading it clears the write toggle, as on hardware. */
+        u8 s = (u8)(p->status | 0x80);
+        p->w = 0;
+        log_add(p, PPU_STATUS_R, 0x2002, s);
+        return s;
+    }
+    case 0x2007: {
+        u16 a = p->v & 0x3FFF;
+        u8 r = p->read_buf;
+        p->read_buf = (a >= 0x3F00) ? p->palette[(a - 0x3F00) & 0x1F]
+                                    : p->vram[a & 0x07FF];
+        p->v = (u16)(p->v + ((p->ctrl & 0x04) ? 32 : 1));
+        log_add(p, PPU_DATA_R, a, r);
+        return r;
+    }
+    default:
+        return 0xFF;
+    }
+}
+
+void ppu_write(Ppu *p, Cpu *c, u16 addr, u8 val) {
+    switch (addr & 0x2007) {
+    case 0x2000:
+        p->ctrl = val;
+        log_add(p, PPU_CTRL, 0x2000, val);
+        break;
+    case 0x2001:
+        p->mask = val;
+        log_add(p, PPU_MASK, 0x2001, val);
+        break;
+    case 0x2003:
+        p->oam_addr = val;
+        log_add(p, PPU_OAMADDR, 0x2003, val);
+        break;
+    case 0x2004:
+        p->oam[p->oam_addr++] = val;
+        break;
+    case 0x2005:
+        log_add(p, PPU_SCROLL, 0x2005, val);
+        break;
+    case 0x2006:
+        if (!p->w) {
+            p->v = (u16)((val & 0x3F) << 8);
+        } else {
+            p->v = (u16)((p->v & 0x3F00) | val);
+            log_add(p, PPU_ADDR, p->v, 0);
+        }
+        p->w = (u8)!p->w;
+        break;
+    case 0x2007:
+        ppu_write_data(p, val);
+        break;
+    default:
+        break;
+    }
+    if (addr == 0x4014) {
+        /* OAM DMA: copy 256 bytes from CPU page val<<8 into OAM. */
+        u16 src = (u16)(val << 8);
+        int i;
+        for (i = 0; i < 256; i++) p->oam[(p->oam_addr + i) & 0xFF] = c->mem[src + i];
+        log_add(p, PPU_OAMDMA, src, val);
+    }
+}
+[0m$ [0mls -la /home/wyn/LLMario/c/ && echo "---OUT---" && ls -la /home/wyn/LLMario/out/ && echo "---ROOT---" && ls -la /home/wyn/LLMario/
+total 248
+drwxr-xr-x. 1 wyn wyn   494 Sep 26 21:11 .
+drwxr-xr-x. 1 wyn wyn   156 Sep 26 21:09 ..
+-rwxr-xr-x. 1 wyn wyn  1438 Sep 26 21:09 build_c.sh
+-rw-r--r--. 1 wyn wyn   892 Sep 26 18:53 cpu.h
+-rw-r--r--. 1 wyn wyn  6526 Sep 26 20:48 difftest.c
+-rw-r--r--. 1 wyn wyn 17452 Sep 26 21:09 gen_c.py
+drwxr-xr-x. 1 wyn wyn   210 Sep 26 21:10 out
+-rw-r--r--. 1 wyn wyn  3305 Sep 26 21:09 ppu.c
+-rw-r--r--. 1 wyn wyn  1249 Sep 26 21:09 ppu.h
+-rw-r--r--. 1 wyn wyn  3779 Sep 26 21:09 PPU.md
+-rw-r--r--. 1 wyn wyn  2837 Sep 26 21:09 pputrace.c
+-rw-r--r--. 1 wyn wyn  4219 Sep 26 20:49 README.md
+-rw-r--r--. 1 wyn wyn  8905 Sep 26 19:26 ref6502.c
+-rw-r--r--. 1 wyn wyn  2412 Sep 26 20:36 VERIFICATION.md
+-rw-r--r--. 1 wyn wyn 81018 Sep 26 19:23 VERIFY_ITER1.txt
+-rw-r--r--. 1 wyn wyn 43241 Sep 26 20:09 VERIFY_ITER2.txt
+-rw-r--r--. 1 wyn wyn 22193 Sep 26 20:35 VERIFY_ITER3.txt
+-rw-r--r--. 1 wyn wyn  3486 Sep 26 20:35 VERIFY_ITER4.txt
+-rw-r--r--. 1 wyn wyn  1890 Sep 26 21:11 VERIFY_PPU_PROMPT.txt
+-rw-r--r--. 1 wyn wyn   109 Sep 26 21:11 VERIFY_PPU.txt
+-rw-r--r--. 1 wyn wyn  2077 Sep 26 19:29 VERIFY_PROMPT2.txt
+-rw-r--r--. 1 wyn wyn  1705 Sep 26 20:12 VERIFY_PROMPT3.txt
+-rw-r--r--. 1 wyn wyn  2707 Sep 26 19:02 VERIFY_PROMPT.txt
+---OUT---
+total 1216
+drwxr-xr-x. 1 wyn wyn    202 Sep 26 21:09 .
+drwxr-xr-x. 1 wyn wyn    156 Sep 26 21:09 ..
+-rw-r--r--. 1 wyn wyn   8192 Sep 26 20:52 chr.bin
+-rw-r-----. 1 wyn wyn 294115 Sep 26 18:11 ghidra_map.txt
+-rw-r--r--. 1 wyn wyn     16 Sep 26 20:52 header.bin
+-rw-r--r--. 1 wyn wyn   2372 Sep 26 21:09 ppu_map.txt
+-rw-r--r--. 1 wyn wyn  32768 Sep 26 20:52 prg.bin
+-rw-r--r--. 1 wyn wyn  32768 Sep 26 20:52 prg_rebuilt.bin
+-rw-r--r--. 1 wyn wyn     65 Sep 26 20:52 prg.sha256
+-rw-r--r--. 1 wyn wyn 587056 Sep 26 20:50 smb.asm
+-rw-r--r--. 1 wyn wyn 225284 Sep 26 20:52 smb.o
+-rw-r--r--. 1 wyn wyn  40976 Sep 26 20:52 smb_rebuilt.nes
+---ROOT---
+total 44
+drwxr-xr-x. 1 wyn wyn   156 Sep 26 21:09 .
+drwx------. 1 wyn wyn   658 Sep 26 20:51 ..
+-rwxr-xr-x. 1 wyn wyn   936 Sep 26 20:50 build.sh
+drwxr-xr-x. 1 wyn wyn   494 Sep 26 21:11 c
+drwxr-xr-x. 1 wyn wyn   210 Sep 26 20:51 docs
+-rwxr-xr-x. 1 wyn wyn  1231 Sep 26 20:50 extract_rom.sh
+-rw-r--r--. 1 wyn wyn  7765 Sep 26 20:49 gen.py
+drwxr-xr-x. 1 wyn wyn    82 Sep 26 20:51 ghidra
+drwxr-xr-x. 1 wyn wyn   128 Sep 26 20:54 .git
+-rw-r--r--. 1 wyn wyn   358 Sep 26 20:52 .gitignore
+drwxr-xr-x. 1 wyn wyn   202 Sep 26 21:09 out
+-rw-r--r--. 1 wyn wyn  3133 Sep 26 21:09 ppu.py
+-rw-r--r--. 1 wyn wyn 16271 Sep 26 21:10 README.md
+-rw-r--r--. 1 wyn wyn   128 Sep 26 18:17 smb.cfg
+> build · deepseek-v4.1-flash
+Let me read the key files: gen_c.py, pputrace.c, difftest.c, build_c.sh, and the reference ppu.py.
+=====VERIFICATION.MD=====
+# Verification of the C decompilation
+
+Each round is an independent OpenCode session running `opencode/deepseek-v4.1-flash`.
+Prompts and full transcripts are kept alongside this file.
+
+| Round | Prompt | Result | Outcome |
+| --- | --- | --- | --- |
+| 1 | `VERIFY_PROMPT.txt` / `VERIFY_ITER1.txt` | **FAIL** | Found 5 reachable instruction entry points missing from the C (`$8223`, `$C902`, `$C905`, `$BFB7`, `$DC21` -- the `BIT abs` operand-as-entry idiom), and showed the diff test could not detect translation gaps. Gave exact fix instructions. |
+| 2 | `VERIFY_PROMPT2.txt` / `VERIFY_ITER2.txt` | (incomplete) | Verified the fixes and the semantics, then found a false positive: gap detection flagged RAM addresses below `$8000`. The run ended on an upstream API error before a verdict. |
+| 3 | `VERIFY_PROMPT3.txt` / `VERIFY_ITER3.txt`, `VERIFY_ITER4.txt` | **PASS** | All checks pass: builds, diff test `mismatches=0 gaps=0`, gap detector non-vacuous, an independent traversal found 0 reachable-but-untranslated instructions, and 44 hand-computed 6502 semantic checks passed. No changes required. |
+
+## Fixes applied in response to round 1
+
+* `gen_c.py` expands the code map with all static control-flow targets
+  (JSR/JMP/branch operands plus fall-through/return sites) to a fixpoint,
+  decoding overlapping instruction streams directly from the ROM (65 added
+  entry points).
+* `difftest.c` gained Phase 0 (vector traces), Phase 1b (coverage assertion)
+  and gap detection; a gap is now a failure rather than a silent end of trace.
+
+## Fix applied in response to round 2
+
+* Gap detection only treats `$8000-$FFFF` addresses holding a valid opcode as
+  required translations; a target below `$8000` is RAM, not a gap.
+
+## Independent evidence from the passing round
+
+```
+translated=10320  trials=10910 steps=78629 mismatches=0 gaps=0
+out/smb_prg_x64.o:   ELF 64-bit LSB relocatable, x86-64 ...
+out/smb_prg_arm64.o: ELF 64-bit LSB relocatable, ARM aarch64 ...
+```
+
+* Gap detector proven non-vacuous by deleting one `optab[...]` entry: the test
+  then reports `GAP: translated address $8223 has no function` and 3 gaps.
+* The verifier's own recursive traversal (dereferencing the vectors) reported
+  `reached-but-untranslated (valid opcode): 0` and
+  `closure violations ...: 0`.
+* 44 hand-computed 6502 results (ADC/SBC carry+overflow, ROL/ROR, ASL/LSR, BIT,
+  CMP, JSR/RTS, BRK) matched the generated code.
+[0m$ [0mgrep -n "g_io_write\|g_io_read\|4014\|4016\|4017\|0x200\|0x2007\|0x4000\|io_hook\|io_write\|io_read" /home/wyn/LLMario/c/gen_c.py | head -80
+277:void (*g_io_write)(Cpu *, u16, u8) = 0;
+278:u8 (*g_io_read)(Cpu *, u16) = 0;
+280:    if (a >= 0x2000 && a < 0x4020 && g_io_read) return g_io_read(c, a);
+284:    if (a >= 0x2000 && a < 0x4020 && g_io_write) { g_io_write(c, a, v); return; }
+> build · deepseek-v4.1-flash
+Now let me examine the hook refactor in gen_c.py, cpu.h, PPU.md, and the disassembly around the key routines.
+[0m$ [0msed -n '250,320p' /home/wyn/LLMario/c/gen_c.py; echo "=====CPU.H====="; cat /home/wyn/LLMario/c/cpu.h; echo "=====PPU.MD====="; cat /home/wyn/LLMario/c/PPU.md
+elif mn in BRANCHES:
+        sets_pc = True
+        b.append(f"if ({BCOND[mn]}) c->pc = 0x{val:04X}; else c->pc = 0x{npc:04X};")
+    elif mn in ("SEC", "CLC", "SED", "CLD", "SEI", "CLI", "CLV"):
+        flag = {"SEC": "F_C", "CLC": "F_C", "SED": "F_D", "CLD": "F_D",
+                "SEI": "F_I", "CLI": "F_I", "CLV": "F_V"}[mn]
+        setc = mn in ("SEC", "SED", "SEI")
+        if mn == "CLV":
+            b.append("c->p &= (u8)~F_V;")
+        elif setc:
+            b.append(f"c->p |= {flag};")
+        else:
+            b.append(f"c->p &= (u8)~{flag};")
+    elif mn == "NOP":
+        pass
+    else:
+        raise ValueError(mn)
+
+    if not sets_pc:
+        b.append(f"c->pc = 0x{npc:04X};")
+    return f"static void I_{a:04X}(Cpu *c){{ " + " ".join(b) + " }"
+
+
+PRELUDE = r"""
+/* I/O hooks: when set, accesses to $2000-$401F are routed to a device model
+ * (e.g. the PPU) instead of plain memory. NULL (the default) keeps the pure
+ * CPU/memory behaviour used by the differential test. */
+void (*g_io_write)(Cpu *, u16, u8) = 0;
+u8 (*g_io_read)(Cpu *, u16) = 0;
+static u8 rd8(Cpu *c, u16 a) {
+    if (a >= 0x2000 && a < 0x4020 && g_io_read) return g_io_read(c, a);
+    return c->mem[a];
+}
+static void wr8(Cpu *c, u16 a, u8 v) {
+    if (a >= 0x2000 && a < 0x4020 && g_io_write) { g_io_write(c, a, v); return; }
+    c->mem[a] = v;
+}
+static void setnz(Cpu *c, u8 v) {
+    if (v == 0) c->p |= F_Z; else c->p &= (u8)~F_Z;
+    if (v & 0x80) c->p |= F_N; else c->p &= (u8)~F_N;
+}
+static void push(Cpu *c, u8 v) { c->mem[0x100 + c->s] = v; c->s = (u8)(c->s - 1); }
+static u8 pop(Cpu *c) { c->s = (u8)(c->s + 1); return c->mem[0x100 + c->s]; }
+static void push16(Cpu *c, u16 v) { push(c, (u8)(v >> 8)); push(c, (u8)v); }
+static u16 pop16(Cpu *c) { u8 lo = pop(c); u8 hi = pop(c); return (u16)(lo | (hi << 8)); }
+static void do_adc(Cpu *c, u8 m) {
+    u16 r = (u16)c->a + m + ((c->p & F_C) ? 1 : 0);
+    u8 res = (u8)r;
+    if (r > 0xFF) c->p |= F_C; else c->p &= (u8)~F_C;
+    if ((~(c->a ^ m) & (c->a ^ res)) & 0x80) c->p |= F_V; else c->p &= (u8)~F_V;
+    c->a = res; setnz(c, res);
+}
+static void do_sbc(Cpu *c, u8 m) {
+    u16 r = (u16)((u16)c->a - m - ((c->p & F_C) ? 0 : 1));
+    u8 res = (u8)r;
+    if (r < 0x100) c->p |= F_C; else c->p &= (u8)~F_C;
+    if (((c->a ^ m) & (c->a ^ res)) & 0x80) c->p |= F_V; else c->p &= (u8)~F_V;
+    c->a = res; setnz(c, res);
+}
+static void do_cmp(Cpu *c, u8 r, u8 m) {
+    u16 t = (u16)r - m;
+    if (t < 0x100) c->p |= F_C; else c->p &= (u8)~F_C;
+    setnz(c, (u8)t);
+}
+static void do_asl(Cpu *c, u8 *v) { u8 m = *v; if (m & 0x80) c->p |= F_C; else c->p &= (u8)~F_C; m = (u8)(m << 1); *v = m; setnz(c, m); }
+static void do_lsr(Cpu *c, u8 *v) { u8 m = *v; if (m & 1) c->p |= F_C; else c->p &= (u8)~F_C; m = (u8)(m >> 1); *v = m; setnz(c, m); }
+static void do_rol(Cpu *c, u8 *v) { u8 m = *v; u8 cy = (c->p & F_C) ? 1 : 0; if (m & 0x80) c->p |= F_C; else c->p &= (u8)~F_C; m = (u8)((m << 1) | cy); *v = m; setnz(c, m); }
+static void do_ror(Cpu *c, u8 *v) { u8 m = *v; u8 cy = (c->p & F_C) ? 0x80 : 0; if (m & 1) c->p |= F_C; else c->p &= (u8)~F_C; m = (u8)((m >> 1) | cy); *v = m; setnz(c, m); }
+static void do_inc(Cpu *c, u8 *v) { u8 m = (u8)(*v + 1); *v = m; setnz(c, m); }
+static void do_dec(Cpu *c, u8 *v) { u8 m = (u8)(*v - 1); *v = m; setnz(c, m); }
+static void do_bit(Cpu *c, u8 m) { if ((c->a & m) == 0) c->p |= F_Z; else c->p &= (u8)~F_Z; c->p = (u8)((c->p & (u8)~(F_N | F_V)) | (m & 0xC0)); }
+=====CPU.H=====
+/* Shared CPU state for the decompiled Super Mario Bros. PRG.
+ *
+ * Deliberately freestanding: only built-in types are used so the generated
+ * code can be compiled for x86-64 and aarch64 without a target libc/sysroot.
+ */
+#ifndef SMB_CPU_H
+#define SMB_CPU_H
+
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef unsigned int u32;
+
+/* 6502 status register bits. */
+#define F_C 0x01
+#define F_Z 0x02
+#define F_I 0x04
+#define F_D 0x08
+#define F_B 0x10
+#define F_U 0x20
+#define F_V 0x40
+#define F_N 0x80
+
+typedef struct {
+    u8 a, x, y, s, p;   /* accumulator, X, Y, stack pointer, status */
+    u16 pc;             /* program counter */
+    u8 mem[0x10000];    /* 64 KiB address space */
+} Cpu;
+
+/* Instruction dispatch table: non-NULL for every address translated to C.
+ * A NULL entry means the address holds data, not code. */
+typedef void (*CpuOp)(Cpu *);
+
+#endif /* SMB_CPU_H */
+=====PPU.MD=====
+# The "GPU": decompiling the NES PPU interface
+
+## There is no GPU instruction set
+
+Unlike a modern GPU (or the microcoded coprocessors on later consoles), the NES
+**PPU has no programmable instruction set**. It is a fixed-function chip: the
+CPU configures and feeds it through eight memory-mapped registers. So there is
+no "GPU program" to disassemble in the ROM — but there *is* a GPU **command
+stream**, and that is what this directory decompiles.
+
+Register interface (`$2000-$2007`, plus `$4014`):
+
+| Register | Name | Function |
+| --- | --- | --- |
+| `$2000` | PPUCTRL | NMI enable, sprite size, background pattern table, VRAM increment |
+| `$2001` | PPUMASK | background/sprite enable, left-column masking, colour emphasis |
+| `$2002` | PPUSTATUS | VBlank/sprite-0 flags (read); resets the write toggle |
+| `$2003` | OAMADDR | sprite memory address |
+| `$2004` | OAMDATA | sprite memory data |
+| `$2005` | PPUSCROLL | scroll X then Y (two writes) |
+| `$2006` | PPUADDR | VRAM address high then low (two writes) |
+| `$2007` | PPUDATA | VRAM/palette data; auto-increments |
+| `$4014` | OAMDMA | copy 256 bytes of CPU memory to PPU sprite memory |
+
+## What SMB's "GPU program" looks like
+
+The static map is in `../out/ppu_map.txt` (`../ppu.py`). The interesting
+routines are:
+
+* **`$8E2D` — block fill.** Sets `PPUADDR = $2400`, then writes `PPUDATA = $24`
+  768 times and `PPUDATA = $00` 64 times (optionally setting the vertical
+  increment in PPUCTRL), clearing a nametable/attribute region.
+* **`$8E92` — the VRAM upload interpreter.** This is SMB's display-list
+  interpreter: it takes a pointer in `$00/$01`, writes the two bytes of
+  `PPUADDR`, uses a control byte to choose the PPUCTRL increment (horizontal or
+  vertical) and a run length, then streams that many bytes to `PPUDATA`.
+  Data tables throughout the ROM are fed through this routine.
+* **`$8EE6`** writes `PPUSCROLL` twice; **`$8EED`** writes `PPUCTRL`.
+* **`$8E5C`** reads both controllers (strobe `$4016`, then shift in 8 reads).
+* **The NMI at `$8082`** runs once per frame: it updates `PPUCTRL`, `PPUMASK`
+  and `OAMADDR`, issues an `OAMDMA` from `$0200` (the shadow OAM the game
+  builds in RAM), then performs scroll and VRAM updates.
+
+## The model and the trace
+
+`ppu.h`/`ppu.c` implement that register interface: the PPUADDR write toggle,
+VRAM auto-increment, buffered `PPUDATA` reads, palette/VRAM mirroring, OAM DMA
+from CPU memory, and a command log (contiguous same-value `PPUDATA` writes are
+coalesced).
+
+`pputrace.c` runs the decompiled CPU with this PPU attached. The generated C
+routes accesses to `$2000-$401F` through `g_io_write`/`g_io_read` hooks
+(`gen_c.py`), so the same instruction functions drive the PPU. It executes the
+reset routine to the NMI wait loop, then one NMI frame, and prints the command
+stream:
+
+```
+reset ran 19317 steps, reached $8057
+NMI ran 24375 steps
+
+=== PPU command stream (in order) ===
+  PPUCTRL    = $10
+  PPUMASK    = $06
+  PPUCTRL    = $10
+  PPUADDR    = $2400
+  PPUDATA<- [$2400] <- $24  (x768)
+  PPUDATA<- [$27C0] <- $00  (x64)
+  PPUSCROLL  = $00
+  PPUSCROLL  = $00
+  PPUADDR    = $2000
+  PPUDATA<- [$2000] <- $24  (x768)
+  ...
+  OAMADDR    = $00
+  OAMDMA     page $0200 (256 bytes)
+  ...
+```
+
+Run it with:
+
+```sh
+./extract_rom.sh "/path/to/Super Mario Bros. (World).nes"
+cd c && cc -O2 -I. -o out/pputrace pputrace.c ppu.c out/smb_prg.c && ./out/pputrace ../out/prg.bin
+```
+
+## Scope
+
+The model captures the **register/command** semantics needed to expose the
+game's GPU program; it is not a cycle-accurate PPU and does not yet render
+pixels. `PPUSTATUS` reports VBlank set so the game's busy-waits terminate.
+A rendering PPU (background nametable fetch + sprite compositing) would be the
+next step to make the decompiled code produce an image.
+[0m$ [0mgrep -n "8E2D\|8E92\|8082\|8EE6\|8EED\|8E5C\|8057" /home/wyn/LLMario/out/smb.asm | head -40
+48:        JSR a:$8EED                ; $8054: 20 ED 8E
+49:        JMP a:$8057                ; $8057: 4C 57 80
+53:        LDA a:$0778                ; $8082: AD 78 07
+70:        JSR a:$8EE6                ; $80AB: 20 E6 8E
+94:        JSR a:$8E5C                ; $80E7: 20 5C 8E
+1296:        JSR a:$8EED                ; $8E23: 20 ED 8E
+1298:        JSR a:$8E2D                ; $8E28: 20 2D 8E
+1300:        STA a:$2006                ; $8E2D: 8D 06 20
+1322:        JMP a:$8EE6                ; $8E59: 4C E6 8E
+1323:        LDA #$01                   ; $8E5C: A9 01
+1355:L8E92:
+1356:        STA a:$2006                ; $8E92: 8D 06 20
+1369:        JSR a:$8EED                ; $8EA9: 20 ED 8E
+1403:        BNE L8E92                  ; $8EE4: D0 AC
+1404:        STA a:$2005                ; $8EE6: 8D 05 20
+1407:        STA a:$2000                ; $8EED: 8D 00 20
+[0m$ [0msed -n '1,120p' /home/wyn/LLMario/c/difftest.c
+/* Differential test: the decompiled C vs the independent interpreter.
+ *
+ * Phase 0: traces from the RESET/NMI/IRQ vectors.
+ * Phase 1: every translated instruction, one step, randomised state.
+ * Phase 1b: dispatch-table coverage (no gaps for translated addresses).
+ * Phase 2: random multi-step traces.
+ *
+ * Gap detection: if execution reaches an address that has no translated
+ * function but IS a static control-flow target, that is reported as a
+ * translation gap rather than silently ending the trace.
+ */
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "cpu.h"
+#include "out/xlt.h"
+#include "out/ref_optable.h"
+
+extern CpuOp optab[0x10000];
+extern void smb_cpu_init(Cpu *c, const u8 *prg);
+extern int smb_cpu_step(Cpu *c);
+extern int ref_step(Cpu *c);
+extern int ref_successors(Cpu *c, unsigned *out);
+
+static u8 PRG[0x8000];
+
+static int load_prg(const char *path) {
+    FILE *f = fopen(path, "rb");
+    size_t n;
+    if (!f) return 0;
+    n = fread(PRG, 1, 0x8000, f);
+    fclose(f);
+    return n == 0x8000;
+}
+
+static unsigned long long rng_state = 0x123456789abcdefULL;
+static unsigned rnd(void) {
+    rng_state ^= rng_state << 13;
+    rng_state ^= rng_state >> 7;
+    rng_state ^= rng_state << 17;
+    return (unsigned)(rng_state >> 32);
+}
+
+static int memdiff(Cpu *x, Cpu *y, unsigned *where) {
+    unsigned i;
+    for (i = 0; i < 0x10000; i++)
+        if (x->mem[i] != y->mem[i]) { *where = i; return 1; }
+    return 0;
+}
+
+static unsigned long trials = 0, steps = 0, mismatches = 0, gaps = 0;
+static unsigned char targetbit[0x10000];
+static Cpu g_base;
+
+static void report(const char *tag, Cpu *a, Cpu *b, unsigned addr, unsigned step) {
+    unsigned md = 0;
+    mismatches++;
+    printf("MISMATCH [%s] start=$%04X step=%u\n", tag, addr, step);
+    printf("  C  : pc=%04X a=%02X x=%02X y=%02X s=%02X p=%02X\n", a->pc, a->a, a->x, a->y, a->s, a->p);
+    printf("  ref: pc=%04X a=%02X x=%02X y=%02X s=%02X p=%02X\n", b->pc, b->a, b->x, b->y, b->s, b->p);
+    if (memdiff(a, b, &md))
+        printf("  mem first diff at $%04X: C=%02X ref=%02X\n", md, a->mem[md], b->mem[md]);
+}
+
+static void randomize(Cpu *c, unsigned seed) {
+    unsigned i;
+    rng_state ^= seed * 0x9E3779B97F4A7C15ULL + 0x1234;
+    c->a = (u8)rnd(); c->x = (u8)rnd(); c->y = (u8)rnd();
+    c->s = (u8)(0x80 + (rnd() & 0x7f));
+    c->p = (u8)(rnd() | F_U);
+    for (i = 0; i < 0x8000; i++) c->mem[i] = (u8)rnd();
+}
+
+/* Mark every static successor of every translated instruction. */
+static void build_targets(void) {
+    unsigned i;
+    int t;
+    for (i = 0; i < XLT_COUNT; i++) {
+        Cpu c = g_base;
+        unsigned out[3];
+        int n;
+        c.pc = (u16)XLT_ADDRS[i];
+        n = ref_successors(&c, out);
+        for (t = 0; t < n; t++)
+            /* Only ROM addresses can be translated code. A target below $8000
+             * is RAM (e.g. an indirect jump or a mis-decoded data byte), not a
+             * translation gap. Illegal opcodes are data, not gaps either. */
+            if (out[t] >= 0x8000 && out[t] < 0x10000 &&
+                REF_MN[g_base.mem[out[t]]] != 0xFF)
+                targetbit[out[t]] = 1;
+    }
+}
+
+/* Step both once, comparing. Returns 0 to stop. */
+static int one_step(Cpu *c1, Cpu *c2, const char *tag, unsigned start, unsigned step) {
+    unsigned md = 0;
+    if (!optab[c1->pc]) {
+        if (targetbit[c1->pc]) {
+            gaps++;
+            printf("GAP [%s] start=$%04X step=%u: $%04X is a translated target but optab is NULL\n",
+                   tag, start, step, c1->pc);
+        }
+        return 0;
+    }
+    smb_cpu_step(c1);
+    if (ref_step(c2) != 0) return 0;
+    if (c1->pc != c2->pc || c1->a != c2->a || c1->x != c2->x || c1->y != c2->y ||
+        c1->s != c2->s || c1->p != c2->p || memdiff(c1, c2, &md)) {
+        report(tag, c1, c2, start, step);
+        return 0;
+    }
+    steps++;
+    return 1;
+}
+
+int main(int argc, char **argv) {
+    Cpu base, c1, c2;
+    unsigned addr, i;
+    const char *prg_path = (argc > 1) ? argv[1] : getenv("SMB_PRG");
+> build · deepseek-v4.1-flash
+Let me run the build (in background) while I examine the disassembly in detail.
+[0m$ [0msed -n '1,140p' /home/wyn/LLMario/out/smb.asm
+; Super Mario Bros. (World) PRG disassembly
+; 32 KiB PRG mapped at $8000-$FFFF. Code from recursive traversal
+; (RESET/NMI/IRQ + in-line jump tables); other bytes are data.
+; Each line is commented with its address and raw opcode bytes.
+.setcpu "6502"
+.segment "PRG"
+
+        SEI                        ; $8000: 78
+        CLD                        ; $8001: D8
+        LDA #$10                   ; $8002: A9 10
+        STA a:$2000                ; $8004: 8D 00 20
+        LDX #$FF                   ; $8007: A2 FF
+        TXS                        ; $8009: 9A
+L800A:
+        LDA a:$2002                ; $800A: AD 02 20
+        BPL L800A                  ; $800D: 10 FB
+L800F:
+        LDA a:$2002                ; $800F: AD 02 20
+        BPL L800F                  ; $8012: 10 FB
+        LDY #$FE                   ; $8014: A0 FE
+        LDX #$05                   ; $8016: A2 05
+L8018:
+        LDA a:$07D7,x              ; $8018: BD D7 07
+        CMP #$0A                   ; $801B: C9 0A
+        BCS L802B                  ; $801D: B0 0C
+        DEX                        ; $801F: CA
+        BPL L8018                  ; $8020: 10 F6
+        LDA a:$07FF                ; $8022: AD FF 07
+        CMP #$A5                   ; $8025: C9 A5
+        BNE L802B                  ; $8027: D0 02
+        LDY #$D6                   ; $8029: A0 D6
+L802B:
+        JSR a:$90CC                ; $802B: 20 CC 90
+        STA a:$4011                ; $802E: 8D 11 40
+        STA a:$0770                ; $8031: 8D 70 07
+        LDA #$A5                   ; $8034: A9 A5
+        STA a:$07FF                ; $8036: 8D FF 07
+        STA a:$07A7                ; $8039: 8D A7 07
+        LDA #$0F                   ; $803C: A9 0F
+        STA a:$4015                ; $803E: 8D 15 40
+        LDA #$06                   ; $8041: A9 06
+        STA a:$2001                ; $8043: 8D 01 20
+        JSR a:$8220                ; $8046: 20 20 82
+        JSR a:$8E19                ; $8049: 20 19 8E
+        INC a:$0774                ; $804C: EE 74 07
+        LDA a:$0778                ; $804F: AD 78 07
+        ORA #$80                   ; $8052: 09 80
+        JSR a:$8EED                ; $8054: 20 ED 8E
+        JMP a:$8057                ; $8057: 4C 57 80
+        .byte $01,$A4,$C8,$EC,$10,$00,$41,$41,$4C,$34,$3C,$44,$54,$68,$7C,$A8   ; $805A
+        .byte $BF,$DE,$EF,$03,$8C,$8C,$8C,$8D,$03,$03,$03,$8D,$8D,$8D,$8D,$8D   ; $806A
+        .byte $8D,$8D,$8D,$8D,$8D,$8D,$00,$40   ; $807A
+        LDA a:$0778                ; $8082: AD 78 07
+        AND #$7F                   ; $8085: 29 7F
+        STA a:$0778                ; $8087: 8D 78 07
+        AND #$7E                   ; $808A: 29 7E
+        STA a:$2000                ; $808C: 8D 00 20
+        LDA a:$0779                ; $808F: AD 79 07
+        AND #$E6                   ; $8092: 29 E6
+        LDY a:$0774                ; $8094: AC 74 07
+        BNE L809E                  ; $8097: D0 05
+        LDA a:$0779                ; $8099: AD 79 07
+        ORA #$1E                   ; $809C: 09 1E
+L809E:
+        STA a:$0779                ; $809E: 8D 79 07
+        AND #$E7                   ; $80A1: 29 E7
+        STA a:$2001                ; $80A3: 8D 01 20
+        LDX a:$2002                ; $80A6: AE 02 20
+        LDA #$00                   ; $80A9: A9 00
+        JSR a:$8EE6                ; $80AB: 20 E6 8E
+        STA a:$2003                ; $80AE: 8D 03 20
+        LDA #$02                   ; $80B1: A9 02
+        STA a:$4014                ; $80B3: 8D 14 40
+        LDX a:$0773                ; $80B6: AE 73 07
+        LDA a:$805A,x              ; $80B9: BD 5A 80
+        STA z:$00                  ; $80BC: 85 00
+        LDA a:$806D,x              ; $80BE: BD 6D 80
+        STA z:$01                  ; $80C1: 85 01
+        JSR a:$8EDD                ; $80C3: 20 DD 8E
+        LDY #$00                   ; $80C6: A0 00
+        LDX a:$0773                ; $80C8: AE 73 07
+        CPX #$06                   ; $80CB: E0 06
+        BNE L80D0                  ; $80CD: D0 01
+        INY                        ; $80CF: C8
+L80D0:
+        LDX a:$8080,y              ; $80D0: BE 80 80
+        LDA #$00                   ; $80D3: A9 00
+        STA a:$0300,x              ; $80D5: 9D 00 03
+        STA a:$0301,x              ; $80D8: 9D 01 03
+        STA a:$0773                ; $80DB: 8D 73 07
+        LDA a:$0779                ; $80DE: AD 79 07
+        STA a:$2001                ; $80E1: 8D 01 20
+        JSR a:$F2D0                ; $80E4: 20 D0 F2
+        JSR a:$8E5C                ; $80E7: 20 5C 8E
+        JSR a:$8182                ; $80EA: 20 82 81
+        JSR a:$8F97                ; $80ED: 20 97 8F
+        LDA a:$0776                ; $80F0: AD 76 07
+        LSR a                      ; $80F3: 4A
+        BCS L811B                  ; $80F4: B0 25
+        LDA a:$0747                ; $80F6: AD 47 07
+        BEQ L8100                  ; $80F9: F0 05
+        DEC a:$0747                ; $80FB: CE 47 07
+        BNE L8119                  ; $80FE: D0 19
+L8100:
+        LDX #$14                   ; $8100: A2 14
+        DEC a:$077F                ; $8102: CE 7F 07
+        BPL L810E                  ; $8105: 10 07
+        LDA #$14                   ; $8107: A9 14
+        STA a:$077F                ; $8109: 8D 7F 07
+        LDX #$23                   ; $810C: A2 23
+L810E:
+        LDA a:$0780,x              ; $810E: BD 80 07
+        BEQ L8116                  ; $8111: F0 03
+        DEC a:$0780,x              ; $8113: DE 80 07
+L8116:
+        DEX                        ; $8116: CA
+        BPL L810E                  ; $8117: 10 F5
+L8119:
+        INC z:$09                  ; $8119: E6 09
+L811B:
+        LDX #$00                   ; $811B: A2 00
+        LDY #$07                   ; $811D: A0 07
+        LDA a:$07A7                ; $811F: AD A7 07
+        AND #$02                   ; $8122: 29 02
+        STA z:$00                  ; $8124: 85 00
+        LDA a:$07A8                ; $8126: AD A8 07
+        AND #$02                   ; $8129: 29 02
+        EOR z:$00                  ; $812B: 45 00
+        CLC                        ; $812D: 18
+        BEQ L8131                  ; $812E: F0 01
+        SEC                        ; $8130: 38
+L8131:
+        ROR a:$07A7,x              ; $8131: 7E A7 07
+        INX                        ; $8134: E8
+        DEY                        ; $8135: 88
+        BNE L8131                  ; $8136: D0 F9
+        LDA a:$0722                ; $8138: AD 22 07
+        BEQ L815C                  ; $813B: F0 1F
+L813D:
+        LDA a:$2002                ; $813D: AD 02 20
+[0m$ [0mls -la /tmp/opencode/zig/zig 2>/dev/null; which gcc zig 2>/dev/null; cd /home/wyn/LLMario/c && ./build_c.sh > /tmp/opencode/build.log 2>&1; echo "EXIT=$?"
+-rwxr-xr-x. 1 wyn wyn 164675136 May 23  2025 /tmp/opencode/zig/zig
+/usr/lib64/ccache/gcc
+EXIT=0
+> build · deepseek-v4.1-flash
+Build succeeded. Let me check the build log and examine the $8E2D routine in detail.
+[0m$ [0mcat /tmp/opencode/build.log
+== generating out/smb_prg.c ==
+asm instructions: 10255  added entry points: 65  total: 10320
+instructions: 10320  code bytes: 21975  data bytes: 10793
+wrote /home/wyn/LLMario/c/out/smb_prg.c, out/ref_optable.h and out/xlt.h
+== x86_64 object ==
+== aarch64 object ==
+== differential test (decompiled C vs independent interpreter) ==
+translated=10320  trials=10910 steps=78629 mismatches=0 gaps=0
+== PPU command trace (decompiled CPU driving the PPU model) ==
+reset ran 19317 steps, reached $8057
+NMI ran 24375 steps
+
+=== PPU command stream (in order) ===
+  PPUCTRL    = $10
+  PPUSTATUS  = $80
+  PPUSTATUS  = $80
+  PPUMASK    = $06
+  PPUSTATUS  = $80
+  PPUCTRL    = $10
+  PPUADDR    = $2400
+  PPUDATA<- [$2400] <- $24  (x960)
+  PPUDATA<- [$27C0] <- $00  (x64)
+  PPUSCROLL  = $00
+  PPUSCROLL  = $00
+  PPUADDR    = $2000
+  PPUDATA<- [$2000] <- $24  (x960)
+  PPUDATA<- [$23C0] <- $00  (x64)
+  PPUSCROLL  = $00
+  PPUSCROLL  = $00
+  PPUCTRL    = $90
+  PPUCTRL    = $10
+  PPUMASK    = $00
+  PPUSTATUS  = $80
+  PPUSCROLL  = $00
+  PPUSCROLL  = $00
+  OAMADDR    = $00
+  OAMDMA     page $0200 (256 bytes)
+  PPUSTATUS  = $80
+  PPUSCROLL  = $00
+  PPUSCROLL  = $00
+  PPUMASK    = $00
+  PPUSCROLL  = $00
+  PPUSCROLL  = $00
+  PPUCTRL    = $10
+  PPUSTATUS  = $80
+  PPUCTRL    = $90
+
+commands logged: 33
+== architectures ==
+out/smb_prg_x64.o:   ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), not stripped
+out/smb_prg_arm64.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), with debug_info, not stripped
+OK
+[0m$ [0msed -n '1280,1420p' /home/wyn/LLMario/out/smb.asm
+TAY                        ; $8E05: A8
+        PLA                        ; $8E06: 68
+        STA z:$04                  ; $8E07: 85 04
+        PLA                        ; $8E09: 68
+        STA z:$05                  ; $8E0A: 85 05
+        INY                        ; $8E0C: C8
+        LDA ($04),y                ; $8E0D: B1 04
+        STA z:$06                  ; $8E0F: 85 06
+        INY                        ; $8E11: C8
+        LDA ($04),y                ; $8E12: B1 04
+        STA z:$07                  ; $8E14: 85 07
+        JMP ($0006)                ; $8E16: 6C 06 00
+        LDA a:$2002                ; $8E19: AD 02 20
+        LDA a:$0778                ; $8E1C: AD 78 07
+        ORA #$10                   ; $8E1F: 09 10
+        AND #$F0                   ; $8E21: 29 F0
+        JSR a:$8EED                ; $8E23: 20 ED 8E
+        LDA #$24                   ; $8E26: A9 24
+        JSR a:$8E2D                ; $8E28: 20 2D 8E
+        LDA #$20                   ; $8E2B: A9 20
+        STA a:$2006                ; $8E2D: 8D 06 20
+        LDA #$00                   ; $8E30: A9 00
+        STA a:$2006                ; $8E32: 8D 06 20
+        LDX #$04                   ; $8E35: A2 04
+        LDY #$C0                   ; $8E37: A0 C0
+        LDA #$24                   ; $8E39: A9 24
+L8E3B:
+        STA a:$2007                ; $8E3B: 8D 07 20
+        DEY                        ; $8E3E: 88
+        BNE L8E3B                  ; $8E3F: D0 FA
+        DEX                        ; $8E41: CA
+        BNE L8E3B                  ; $8E42: D0 F7
+        LDY #$40                   ; $8E44: A0 40
+        TXA                        ; $8E46: 8A
+        STA a:$0300                ; $8E47: 8D 00 03
+        STA a:$0301                ; $8E4A: 8D 01 03
+L8E4D:
+        STA a:$2007                ; $8E4D: 8D 07 20
+        DEY                        ; $8E50: 88
+        BNE L8E4D                  ; $8E51: D0 FA
+        STA a:$073F                ; $8E53: 8D 3F 07
+        STA a:$0740                ; $8E56: 8D 40 07
+        JMP a:$8EE6                ; $8E59: 4C E6 8E
+        LDA #$01                   ; $8E5C: A9 01
+        STA a:$4016                ; $8E5E: 8D 16 40
+        LSR a                      ; $8E61: 4A
+        TAX                        ; $8E62: AA
+        STA a:$4016                ; $8E63: 8D 16 40
+        JSR a:$8E6A                ; $8E66: 20 6A 8E
+        INX                        ; $8E69: E8
+        LDY #$08                   ; $8E6A: A0 08
+L8E6C:
+        PHA                        ; $8E6C: 48
+        LDA a:$4016,x              ; $8E6D: BD 16 40
+        STA z:$00                  ; $8E70: 85 00
+        LSR a                      ; $8E72: 4A
+        ORA z:$00                  ; $8E73: 05 00
+        LSR a                      ; $8E75: 4A
+        PLA                        ; $8E76: 68
+        ROL a                      ; $8E77: 2A
+        DEY                        ; $8E78: 88
+        BNE L8E6C                  ; $8E79: D0 F1
+        STA a:$06FC,x              ; $8E7B: 9D FC 06
+        PHA                        ; $8E7E: 48
+        AND #$30                   ; $8E7F: 29 30
+        AND a:$074A,x              ; $8E81: 3D 4A 07
+        BEQ L8E8D                  ; $8E84: F0 07
+        PLA                        ; $8E86: 68
+        AND #$CF                   ; $8E87: 29 CF
+        STA a:$06FC,x              ; $8E89: 9D FC 06
+        RTS                        ; $8E8C: 60
+L8E8D:
+        PLA                        ; $8E8D: 68
+        STA a:$074A,x              ; $8E8E: 9D 4A 07
+        RTS                        ; $8E91: 60
+L8E92:
+        STA a:$2006                ; $8E92: 8D 06 20
+        INY                        ; $8E95: C8
+        LDA ($00),y                ; $8E96: B1 00
+        STA a:$2006                ; $8E98: 8D 06 20
+        INY                        ; $8E9B: C8
+        LDA ($00),y                ; $8E9C: B1 00
+        ASL a                      ; $8E9E: 0A
+        PHA                        ; $8E9F: 48
+        LDA a:$0778                ; $8EA0: AD 78 07
+        ORA #$04                   ; $8EA3: 09 04
+        BCS L8EA9                  ; $8EA5: B0 02
+        AND #$FB                   ; $8EA7: 29 FB
+L8EA9:
+        JSR a:$8EED                ; $8EA9: 20 ED 8E
+        PLA                        ; $8EAC: 68
+        ASL a                      ; $8EAD: 0A
+        BCC L8EB3                  ; $8EAE: 90 03
+        ORA #$02                   ; $8EB0: 09 02
+        INY                        ; $8EB2: C8
+L8EB3:
+        LSR a                      ; $8EB3: 4A
+        LSR a                      ; $8EB4: 4A
+        TAX                        ; $8EB5: AA
+L8EB6:
+        BCS L8EB9                  ; $8EB6: B0 01
+        INY                        ; $8EB8: C8
+L8EB9:
+        LDA ($00),y                ; $8EB9: B1 00
+        STA a:$2007                ; $8EBB: 8D 07 20
+        DEX                        ; $8EBE: CA
+        BNE L8EB6                  ; $8EBF: D0 F5
+        SEC                        ; $8EC1: 38
+        TYA                        ; $8EC2: 98
+        ADC z:$00                  ; $8EC3: 65 00
+        STA z:$00                  ; $8EC5: 85 00
+        LDA #$00                   ; $8EC7: A9 00
+        ADC z:$01                  ; $8EC9: 65 01
+        STA z:$01                  ; $8ECB: 85 01
+        LDA #$3F                   ; $8ECD: A9 3F
+        STA a:$2006                ; $8ECF: 8D 06 20
+        LDA #$00                   ; $8ED2: A9 00
+        STA a:$2006                ; $8ED4: 8D 06 20
+        STA a:$2006                ; $8ED7: 8D 06 20
+        STA a:$2006                ; $8EDA: 8D 06 20
+        LDX a:$2002                ; $8EDD: AE 02 20
+        LDY #$00                   ; $8EE0: A0 00
+        LDA ($00),y                ; $8EE2: B1 00
+        BNE L8E92                  ; $8EE4: D0 AC
+        STA a:$2005                ; $8EE6: 8D 05 20
+        STA a:$2005                ; $8EE9: 8D 05 20
+        RTS                        ; $8EEC: 60
+        STA a:$2000                ; $8EED: 8D 00 20
+        STA a:$0778                ; $8EF0: 8D 78 07
+        RTS                        ; $8EF3: 60
+        .byte $F0,$06,$62,$06,$62,$06,$6D,$02,$6D,$02,$7A,$03,$06,$0C,$12,$18   ; $8EF4
+        .byte $1E,$24   ; $8F04
+        STA z:$00                  ; $8F06: 85 00
+        JSR a:$8F11                ; $8F08: 20 11 8F
+        LDA z:$00                  ; $8F0B: A5 00
+        LSR a                      ; $8F0D: 4A
+        LSR a                      ; $8F0E: 4A
+        LSR a                      ; $8F0F: 4A
+        LSR a                      ; $8F10: 4A
+        CLC                        ; $8F11: 18
+        ADC #$01                   ; $8F12: 69 01
+> build · deepseek-v4.1-flash
+Build passed with `mismatches=0 gaps=0`. Now let me verify the block-fill count arithmetic and test the PPU semantics directly.
+[0m$ [0mcd /home/wyn/LLMario && python3 - <<'PY'
+prg=open('out/prg.bin','rb').read()
+# PRG mapped at 0x8000; byte at addr
+for a in [0x8C01,0x8C00,0x805A,0x806D,0x8080]:
+    print(hex(a), hex(prg[a-0x8000]))
+PY
+echo "--- raw bytes 8E26..8E5A ---"
+python3 - <<'PY'
+prg=open('/home/wyn/LLMario/out/prg.bin','rb').read()
+seg=prg[0x8E26-0x8000:0x8E5A-0x8000]
+print(' '.join('%02X'%b for b in seg))
+PY
+0x8c01 0x47
+0x8c00 0x45
+0x805a 0x1
+0x806d 0x3
+0x8080 0x0
+--- raw bytes 8E26..8E5A ---
+A9 24 20 2D 8E A9 20 8D 06 20 A9 00 8D 06 20 A2 04 A0 C0 A9 24 8D 07 20 88 D0 FA CA D0 F7 A0 40 8A 8D 00 03 8D 01 03 8D 07 20 88 D0 FA 8D 3F 07 8D 40 07 4C
+[0m$ [0mcd /tmp/opencode && cat > ppu_sem.c <<'EOF'
+#include <stdio.h>
+#include <string.h>
+typedef unsigned char u8; typedef unsigned short u16;
+static u8 vram[0x800], pal[0x20], oam[256], ctrl, w, rbuf; static u16 v;
+static void wdata(u8 val){u16 a=v&0x3FFF; if(a>=0x3F00) pal[(a-0x3F00)&0x1F]=val; else vram[a&0x07FF]=val; v=v+((ctrl&4)?32:1);}
+static u8 rdata(void){u16 a=v&0x3FFF; u8 r=rbuf; rbuf=(a>=0x3F00)?pal[(a-0x3F00)&0x1F]:vram[a&0x07FF]; v=v+((ctrl&4)?32:1); return r;}
+int main(void){
+  /* palette mirror: $3F10 should alias $3F00 on hardware */
+  v=0x3F00; wdata(0x11);        /* backdrop = 11 */
+  v=0x3F10; wdata(0x22);        /* hardware: backdrop becomes 22; model: separate byte */
+  v=0x3F00; printf("after write $3F10, $3F00 = $%02X (hardware expects $22)\n", rbuf, vram[0]);
+  /* buffered read of palette: hardware returns palette immediately */
+  v=0x3F00; rbuf=0xAA; printf("palette read $3F00 returns $%02X (hardware expects $22)\n", rdata());
+  /* nametable mirror vertical */
+  v=0x2000; wdata(0x55); v=0x2800; printf("$2800 read low-> $%02X (vertical mirror expects $55 mirror of $2000)\n", vram[0]);
+  return 0;
+}
+EOF
+gcc -O0 -o ppu_sem ppu_sem.c && ./ppu_sem
+echo "---- loop count simulation for 8E2D ----"
+python3 - <<'PY'
+X, Y, n = 4, 0xC0, 0
+while True:
+    n += 1
+    Y = (Y - 1) & 0xFF
+    if Y != 0:
+        continue
+    X = (X - 1) & 0xFF
+    if X != 0:
+        continue
+    break
+print("writes of $24 =", n)
+PY
+after write $3F10, $3F00 = $00 (hardware expects $22)
+palette read $3F00 returns $AA (hardware expects $22)
+$2800 read low-> $55 (vertical mirror expects $55 mirror of $2000)
+---- loop count simulation for 8E2D ----
+writes of $24 = 960
+> build · deepseek-v4.1-flash
+Confirmed: the fill is **960**, not 768, and two palette semantics deviate. Let me verify the hook refactor covers all memory access paths (no `c->mem` bypass that would skip PPU routing).
+[0m$ [0mcd /home/wyn/LLMario/c && grep -n "c->mem" gen_c.py | head -60; echo "--- count ---"; grep -c "c->mem" gen_c.py; echo "--- rd8/wr8 uses ---"; grep -c "rd8(c" gen_c.py; grep -c "wr8(c" gen_c.py
+146:        return (f"(u16)(c->mem[(0x{val:02X} + c->x) & 0xFF] | "
+147:                f"(c->mem[(0x{val:02X} + c->x + 1) & 0xFF] << 8))")
+149:        return (f"(u16)((c->mem[0x{val:02X}] | "
+150:                f"(c->mem[(0x{val:02X} + 1) & 0xFF] << 8)) + c->y)")
+230:            b.append("u8 lo = c->mem[p];")
+231:            b.append("u8 hi = c->mem[(u16)((p & 0xFF00) | ((p + 1) & 0xFF))];")
+249:        b.append("c->pc = (u16)(c->mem[0xFFFE] | (c->mem[0xFFFF] << 8));")
+281:    return c->mem[a];
+285:    c->mem[a] = v;
+291:static void push(Cpu *c, u8 v) { c->mem[0x100 + c->s] = v; c->s = (u8)(c->s - 1); }
+292:static u8 pop(Cpu *c) { c->s = (u8)(c->s + 1); return c->mem[0x100 + c->s]; }
+354:    for (i = 0; i < 0x10000; i++) c->mem[i] = 0;
+357:    for (i = 0; i < 0x8000; i++) c->mem[0x8000 + i] = prg[i];
+--- count ---
+13
+--- rd8/wr8 uses ---
+3
+3
+[0m$ [0mcd /home/wyn/LLMario/c && grep -n "smb_cpu_init\|smb_cpu_step\|optab\[" gen_c.py | head; echo "--- generated file existence ---"; ls -la out/*.c out/*.h 2>/dev/null; echo "--- diff exit ---"; ./out/difftest ../out/prg.bin 2>&1 | tail -5
+345:out.append("CpuOp optab[0x10000];")
+348:    out.append(f"    optab[0x{a:04X}] = I_{a:04X};")
+352:out.append("""void smb_cpu_init(Cpu *c, const u8 *prg) {
+365:out.append("""int smb_cpu_step(Cpu *c) {
+366:    CpuOp f = optab[c->pc];
+373:    while (n--) { if (!smb_cpu_step(c)) return; }
+--- generated file existence ---
+-rw-r--r--. 1 wyn wyn    2461 Sep 26 21:11 out/ref_optable.h
+-rw-r--r--. 1 wyn wyn 1191800 Sep 26 21:11 out/smb_prg.c
+-rw-r--r--. 1 wyn wyn   72392 Sep 26 21:11 out/xlt.h
+--- diff exit ---
+translated=10320  trials=10910 steps=78629 mismatches=0 gaps=0
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/LLMario/c && sed -n '120,175p' gen_c.py; echo "===== 215,260 ====="; sed -n '215,265p' gen_c.py
+print(f"asm instructions: 10255  added entry points: {added}  total: {len(instr)}")
+
+# --- C emission -------------------------------------------------------------
+BRANCHES = {"BPL", "BMI", "BVC", "BVS", "BCC", "BCS", "BNE", "BEQ"}
+BCOND = {
+    "BPL": "!(c->p & F_N)", "BMI": "(c->p & F_N)",
+    "BVC": "!(c->p & F_V)", "BVS": "(c->p & F_V)",
+    "BCC": "!(c->p & F_C)", "BCS": "(c->p & F_C)",
+    "BNE": "!(c->p & F_Z)", "BEQ": "(c->p & F_Z)",
+}
+
+
+def addr_expr(mode, val):
+    if mode == "zp":
+        return f"0x{val:04X}"
+    if mode == "zpx":
+        return f"(u16)((0x{val:02X} + c->x) & 0xFF)"
+    if mode == "zpy":
+        return f"(u16)((0x{val:02X} + c->y) & 0xFF)"
+    if mode == "abs":
+        return f"0x{val:04X}"
+    if mode == "abx":
+        return f"(u16)(0x{val:04X} + c->x)"
+    if mode == "aby":
+        return f"(u16)(0x{val:04X} + c->y)"
+    if mode == "izx":
+        return (f"(u16)(c->mem[(0x{val:02X} + c->x) & 0xFF] | "
+                f"(c->mem[(0x{val:02X} + c->x + 1) & 0xFF] << 8))")
+    if mode == "izy":
+        return (f"(u16)((c->mem[0x{val:02X}] | "
+                f"(c->mem[(0x{val:02X} + 1) & 0xFF] << 8)) + c->y)")
+    raise ValueError(mode)
+
+
+def emit_fn(a, mn, mode, ln, val):
+    npc = a + ln
+    b = []
+    sets_pc = False
+
+    def load_m():
+        if mode == "imm":
+            b.append(f"u8 m = 0x{val:02X};")
+        else:
+            b.append(f"u16 ad = {addr_expr(mode, val)};")
+            b.append("u8 m = rd8(c, ad);")
+
+    if mn in ("LDA", "LDX", "LDY"):
+        load_m()
+        reg = {"LDA": "a", "LDX": "x", "LDY": "y"}[mn]
+        b.append(f"c->{reg} = m; setnz(c, m);")
+    elif mn in ("STA", "STX", "STY"):
+        b.append(f"u16 ad = {addr_expr(mode, val)};")
+        reg = {"STA": "a", "STX": "x", "STY": "y"}[mn]
+        b.append(f"wr8(c, ad, c->{reg});")
+    elif mn in ("AND", "ORA", "EOR"):
+        load_m()
+===== 215,260 =====
+        b.append("c->s = c->x;")
+    elif mn == "PHA":
+        b.append("push(c, c->a);")
+    elif mn == "PHP":
+        b.append("push(c, (u8)(c->p | F_B | F_U));")
+    elif mn == "PLA":
+        b.append("c->a = pop(c); setnz(c, c->a);")
+    elif mn == "PLP":
+        b.append("c->p = (u8)((pop(c) & (u8)~F_B) | F_U);")
+    elif mn == "JMP":
+        sets_pc = True
+        if mode == "abs":
+            b.append(f"c->pc = 0x{val:04X};")
+        else:
+            b.append(f"u16 p = 0x{val:04X};")
+            b.append("u8 lo = c->mem[p];")
+            b.append("u8 hi = c->mem[(u16)((p & 0xFF00) | ((p + 1) & 0xFF))];")
+            b.append("c->pc = (u16)(lo | (hi << 8));")
+    elif mn == "JSR":
+        sets_pc = True
+        b.append(f"push16(c, 0x{npc - 1:04X});")
+        b.append(f"c->pc = 0x{val:04X};")
+    elif mn == "RTS":
+        sets_pc = True
+        b.append("c->pc = (u16)(pop16(c) + 1);")
+    elif mn == "RTI":
+        sets_pc = True
+        b.append("c->p = (u8)(pop(c) | F_U);")
+        b.append("c->pc = pop16(c);")
+    elif mn == "BRK":
+        sets_pc = True
+        b.append(f"push16(c, 0x{a + 2:04X});")
+        b.append("push(c, (u8)(c->p | F_B | F_U));")
+        b.append("c->p |= F_I;")
+        b.append("c->pc = (u16)(c->mem[0xFFFE] | (c->mem[0xFFFF] << 8));")
+    elif mn in BRANCHES:
+        sets_pc = True
+        b.append(f"if ({BCOND[mn]}) c->pc = 0x{val:04X}; else c->pc = 0x{npc:04X};")
+    elif mn in ("SEC", "CLC", "SED", "CLD", "SEI", "CLI", "CLV"):
+        flag = {"SEC": "F_C", "CLC": "F_C", "SED": "F_D", "CLD": "F_D",
+                "SEI": "F_I", "CLI": "F_I", "CLV": "F_V"}[mn]
+        setc = mn in ("SEC", "SED", "SEI")
+        if mn == "CLV":
+            b.append("c->p &= (u8)~F_V;")
+        elif setc:
+            b.append(f"c->p |= {flag};")
+        else:
+            b.append(f"c->p &= (u8)~{flag};")
+    elif mn == "NOP":
+        pass
+    else:
+> build · deepseek-v4.1-flash
+[0m$ [0mcd /home/wyn/LLMario/c && sed -n '175,215p' gen_c.py
+load_m()
+        op = {"AND": "&", "ORA": "|", "EOR": "^"}[mn]
+        b.append(f"c->a = (u8)(c->a {op} m); setnz(c, c->a);")
+    elif mn == "ADC":
+        load_m()
+        b.append("do_adc(c, m);")
+    elif mn == "SBC":
+        load_m()
+        b.append("do_sbc(c, m);")
+    elif mn in ("CMP", "CPX", "CPY"):
+        load_m()
+        reg = {"CMP": "a", "CPX": "x", "CPY": "y"}[mn]
+        b.append(f"do_cmp(c, c->{reg}, m);")
+    elif mn == "BIT":
+        load_m()
+        b.append("do_bit(c, m);")
+    elif mn in ("ASL", "LSR", "ROL", "ROR"):
+        fn = {"ASL": "do_asl", "LSR": "do_lsr", "ROL": "do_rol", "ROR": "do_ror"}[mn]
+        if mode == "acc":
+            b.append(f"{fn}(c, &c->a);")
+        else:
+            b.append(f"u16 ad = {addr_expr(mode, val)};")
+            b.append("u8 m = rd8(c, ad);")
+            b.append(f"{fn}(c, &m);")
+            b.append("wr8(c, ad, m);")
+    elif mn in ("INC", "DEC"):
+        fn = "do_inc" if mn == "INC" else "do_dec"
+        b.append(f"u16 ad = {addr_expr(mode, val)};")
+        b.append("u8 m = rd8(c, ad);")
+        b.append(f"{fn}(c, &m);")
+        b.append("wr8(c, ad, m);")
+    elif mn in ("INX", "INY", "DEX", "DEY"):
+        reg = "x" if mn in ("INX", "DEX") else "y"
+        op = "+" if mn in ("INX", "INY") else "-"
+        b.append(f"c->{reg} = (u8)(c->{reg} {op} 1); setnz(c, c->{reg});")
+    elif mn in ("TAX", "TAY", "TXA", "TYA", "TSX"):
+        src, dst = {"TAX": ("a", "x"), "TAY": ("a", "y"), "TXA": ("x", "a"),
+                    "TYA": ("y", "a"), "TSX": ("s", "x")}[mn]
+        b.append(f"c->{dst} = c->{src}; setnz(c, c->{dst});")
+    elif mn == "TXS":
+        b.append("c->s = c->x;")
+> build · deepseek-v4.1-flash
+Let me map the tail of the NMI trace to the disassembly and confirm the reset vector, to check no command is unjustified.
+[0m$ [0mcd /home/wyn/LLMario && grep -nE "STA a:\\\$20(00|01|05|06)|STA a:\\\$4014|LDA a:\\\$2002|JSR a:\\\$8EE6|JSR a:\\\$8EED|JSR a:\\\$8EDD|JSR a:\\\$8E19" out/smb.asm | sed -n '1,60p'
+11:        STA a:$2000                ; $8004: 8D 00 20
+15:        LDA a:$2002                ; $800A: AD 02 20
+18:        LDA a:$2002                ; $800F: AD 02 20
+42:        STA a:$2001                ; $8043: 8D 01 20
+44:        JSR a:$8E19                ; $8049: 20 19 8E
+48:        JSR a:$8EED                ; $8054: 20 ED 8E
+57:        STA a:$2000                ; $808C: 8D 00 20
+67:        STA a:$2001                ; $80A3: 8D 01 20
+70:        JSR a:$8EE6                ; $80AB: 20 E6 8E
+73:        STA a:$4014                ; $80B3: 8D 14 40
+79:        JSR a:$8EDD                ; $80C3: 20 DD 8E
+92:        STA a:$2001                ; $80E1: 8D 01 20
+140:        LDA a:$2002                ; $813D: AD 02 20
+149:        LDA a:$2002                ; $8150: AD 02 20
+158:        STA a:$2005                ; $815F: 8D 05 20
+160:        STA a:$2005                ; $8165: 8D 05 20
+163:        STA a:$2000                ; $816C: 8D 00 20
+169:        LDA a:$2002                ; $8178: AD 02 20
+172:        STA a:$2000                ; $817E: 8D 00 20
+632:        JSR a:$8E19                ; $858E: 20 19 8E
+793:        STA a:$2006                ; $8706: 8D 06 20
+795:        STA a:$2006                ; $870B: 8D 06 20
+1292:        LDA a:$2002                ; $8E19: AD 02 20
+1296:        JSR a:$8EED                ; $8E23: 20 ED 8E
+1300:        STA a:$2006                ; $8E2D: 8D 06 20
+1302:        STA a:$2006                ; $8E32: 8D 06 20
+1356:        STA a:$2006                ; $8E92: 8D 06 20
+1359:        STA a:$2006                ; $8E98: 8D 06 20
+1369:        JSR a:$8EED                ; $8EA9: 20 ED 8E
+1395:        STA a:$2006                ; $8ECF: 8D 06 20
+1397:        STA a:$2006                ; $8ED4: 8D 06 20
+1398:        STA a:$2006                ; $8ED7: 8D 06 20
+1399:        STA a:$2006                ; $8EDA: 8D 06 20
+1404:        STA a:$2005                ; $8EE6: 8D 05 20
+1405:        STA a:$2005                ; $8EE9: 8D 05 20
+1407:        STA a:$2000                ; $8EED: 8D 00 20
+[0m$ [0mcd /home/wyn/LLMario && python3 - <<'PY'
+prg=open('out/prg.bin','rb').read()
+print("reset vector = $%04X" % (prg[0x7FFC] | (prg[0x7FFD]<<8)))
+print("nmi vector   = $%04X" % (prg[0x7FFA] | (prg[0x7FFB]<<8)))
+print("irq vector   = $%04X" % (prg[0x7FFE] | (prg[0x7FFF]<<8)))
+PY
+reset vector = $8000
+nmi vector   = $8082
+irq vector   = $FFF0
+> build · deepseek-v4.1-flash
+[0m$ [0msed -n '138,180p' /home/wyn/LLMario/out/smb.asm
+BEQ L815C                  ; $813B: F0 1F
+L813D:
+        LDA a:$2002                ; $813D: AD 02 20
+        AND #$40                   ; $8140: 29 40
+        BNE L813D                  ; $8142: D0 F9
+        LDA a:$0776                ; $8144: AD 76 07
+        LSR a                      ; $8147: 4A
+        BCS L8150                  ; $8148: B0 06
+        JSR a:$8223                ; $814A: 20 23 82
+        JSR a:$81C6                ; $814D: 20 C6 81
+L8150:
+        LDA a:$2002                ; $8150: AD 02 20
+        AND #$40                   ; $8153: 29 40
+        BEQ L8150                  ; $8155: F0 F9
+        LDY #$14                   ; $8157: A0 14
+L8159:
+        DEY                        ; $8159: 88
+        BNE L8159                  ; $815A: D0 FD
+L815C:
+        LDA a:$073F                ; $815C: AD 3F 07
+        STA a:$2005                ; $815F: 8D 05 20
+        LDA a:$0740                ; $8162: AD 40 07
+        STA a:$2005                ; $8165: 8D 05 20
+        LDA a:$0778                ; $8168: AD 78 07
+        PHA                        ; $816B: 48
+        STA a:$2000                ; $816C: 8D 00 20
+        LDA a:$0776                ; $816F: AD 76 07
+        LSR a                      ; $8172: 4A
+        BCS L8178                  ; $8173: B0 03
+        JSR a:$8212                ; $8175: 20 12 82
+L8178:
+        LDA a:$2002                ; $8178: AD 02 20
+        PLA                        ; $817B: 68
+        ORA #$80                   ; $817C: 09 80
+        STA a:$2000                ; $817E: 8D 00 20
+        RTI                        ; $8181: 40
+        LDA a:$0770                ; $8182: AD 70 07
+        CMP #$02                   ; $8185: C9 02
+        BEQ L8194                  ; $8187: F0 0B
+        CMP #$01                   ; $8189: C9 01
+        BNE L81C5                  ; $818B: D0 38
+        LDA a:$0772                ; $818D: AD 72 07
+        CMP #$03                   ; $8190: C9 03
+> build · deepseek-v4.1-flash
+Let me produce a clean counterexample for the palette semantics.
+[0m$ [0mcd /tmp/opencode && cat > pal_test.c <<'EOF'
+#include <stdio.h>
+typedef unsigned char u8; typedef unsigned short u16;
+static u8 vram[0x800], pal[0x20], ctrl, rbuf; static u16 v;
+static void wdata(u8 val){u16 a=v&0x3FFF; if(a>=0x3F00) pal[(a-0x3F00)&0x1F]=val; else vram[a&0x07FF]=val; v+= (ctrl&4)?32:1;}
+static u8 rdata(void){u16 a=v&0x3FFF; u8 r=rbuf; rbuf=(a>=0x3F00)?pal[(a-0x3F00)&0x1F]:vram[a&0x07FF]; v+=(ctrl&4)?32:1; return r;}
+int main(void){
+  v=0x3F00; wdata(0x11);        /* backdrop=11 */
+  v=0x3F10; wdata(0x22);        /* hw aliases to backdrop */
+  printf("hw: $3F00 backdrop == $22 after writing $3F10 ; model: $%02X\n", pal[0x00]);
+  v=0x3F00; rbuf=0xAA;          /* poison buffer */
+  printf("hw: read $3F00 == $22 immediately          ; model: $%02X (stale buffer)\n", rdata());
+  return 0;
+}
+EOF
+gcc -O0 -o pal_test pal_test.c && ./pal_test
+hw: $3F00 backdrop == $22 after writing $3F10 ; model: $11
+hw: read $3F00 == $22 immediately          ; model: $AA (stale buffer)
+> build · deepseek-v4.1-flash
+## Verdict: **FAIL** — scoped to the PPU register model (check 2). The central claim, the hook refactor, and the trace all check out.
+
+---
+
+### 1. Central claim — **CORRECT**
+The NES PPU has no instruction set. It is a fixed-function chip programmed through `$2000-$2007` (mirrored `$2000-$3FFF`) plus `$4014` OAM DMA. `ppu.h`/`ppu.c`, `pputrace.c`, `gen_c.py` and `ppu.py` describe/route exactly this. No correction needed.
+
+### 2. `ppu.c` register semantics — **2 documented-behaviour bugs**
+Correct: PPUADDR two-write latch (high 6 bits then low, toggle), PPUDATA auto-increment from PPUCTRL bit 2 (1/32), non-palette buffered PPUDATA read, VRAM vertical folding `&0x7FF`, PPUSTATUS read clearing `w`, OAMDMA 256 bytes from `val<<8` wrapping at OAMADDR with OAMADDR left unchanged, OAMADDR/OAMDATA auto-increment.
+
+**Bug A — palette mirroring missing.** `(a-0x3F00) & 0x1F` does not alias `$3F10/$3F14/$3F18/$3F1C` onto `$3F00/$3F04/$3F08/$3F0C`. Counterexample (`/tmp/opencode/pal_test.c`):
+```
+hw: $3F00 backdrop == $22 after writing $3F10 ; model: $11
+```
+**Bug B — palette PPUDATA read is buffered.** Hardware returns palette data *immediately* and reloads the buffer from the nametable byte behind the palette (`$2F00-$2FFF`). The model returns stale `read_buf` and reloads it from palette:
+```
+hw: read $3F00 == $22 immediately          ; model: $AA (stale buffer)
+```
+Neither bug is exercised by the SMB trace (no palette reads/writes there), but they contradict the header's "palette/VRAM mirroring" and "buffered PPUDATA reads" claims.
+
+Minor: PPUADDR's first write assigns `v` directly instead of the `t` latch (net result correct for the normal two-write sequence); PPUSCROLL is only logged, no `t`/`v`/`x` modelling; `$2004` read / APU regs not modelled.
+
+### 3. Hook refactor — **PASS**
+`./build_c.sh` built the x86-64 and aarch64 objects and ran the differential test:
+```
+translated=10320  trials=10910 steps=78629 mismatches=0 gaps=0
+out/smb_prg_x64.o:   ELF 64-bit LSB relocatable, x86-64 ...
+out/smb_prg_arm64.o: ELF 64-bit relocatable, ARM aarch64 ...
+```
+All data memory accesses in generated code go through `rd8`/`wr8`; the remaining direct `c->mem` uses are zero-page pointer fetches, JMP-indirect pointers, BRK vector, and stack/init (all RAM). With `g_io_read/write == NULL` the hooks are transparent, so semantics are unchanged.
+
+### 4. Trace vs ROM — **PASS (with one doc error to flag)**
+`reset ran 19317 steps, reached $8057` / `NMI ran 24375 steps`; command stream matches the disassembly:
+- `PPUADDR=$2400` then `PPUDATA<- $24`, then `PPUDATA<- $00` — justified by `JSR $8E2D` (`LDA #$24` at `$8E26`, `STA $2006` at `$8E2D`/`$8E32`, loops `$8E3B`, then low `$00` loop `$8E4D`, `JMP $8EE6`).
+- `OAMADDR=$00` then `OAMDMA page $0200` — justified by NMI `$80A9 LDA #$00`/`$80AB JSR $8EE6`, `$80AE STA $2003`, `$80B1 LDA #$02`/`$80B3 STA $4014`.
+- Tail `PPUSCROLL x2 / PPUCTRL=$10 / PPUSTATUS / PPUCTRL=$90` maps to `$815C`, `$816C`, `$8178`, `$817E`. Every logged command traces to an executed instruction; nothing is fabricated.
+
+**Flag:** the prompt and `PPU.md`/`ppu.py` say the fill writes `768x $24`. The code actually writes **960x `$24`** then `64x $00` (`LDY #$C0` = 192, then Y wraps to 0 for three more outer passes: 192+3*256=960; 960+64=1024 = one full nametable). The trace's `[$2400] <- $24 (x960)` is **correct**; the documentation "768" is wrong. Update `PPU.md` and the comment in `ppu.py` (and note `$2000 <- $24 (x960)`).
+
+### 5. Limitations that can mislead
+- `$4000-$401F` is all routed to the PPU model, so APU writes are dropped and controller reads return `$FF` (all buttons pressed) — can change game logic; `$2000-$401F` should be narrowed or split per device.
+- PPUSTATUS hardcodes VBlank set and never clears it; no frame/cycle timing, no sprite-0, no rendering.
+- Reset and NMI share one un-cleared log, so commands from both phases are concatenated with no boundary marker.
+- VRAM mirroring is hardcoded to vertical (`&0x7FF`), which matches SMB but ignores cartridge mirroring.
+- The NMI's VRAM display-list upload (`$8EDD`) legitimately produces nothing (pointer `$00/$01 = $805A[0]/$806D[0] = $0301`, RAM zero), so "no NMI PPUDATA writes" is expected, not a missing feature.
+
+### Precise fixes
+- `c/ppu.c`, `ppu_read()` case `0x2007`: if `a >= 0x3F00`, return `p->palette[pal_idx(a)]` **immediately** (don't return `read_buf`), and set `p->read_buf = p->vram[a & 0x07FF]` (nametable mirror behind palette).
+- `c/ppu.c`, `ppu_write_data()` and the read path: route all palette indices through a helper aliasing `0x10/0x14/0x18/0x1C -> 0x00/0x04/0x08/0x0C` instead of `& 0x1F`.
+- `c/PPU.md` / `../ppu.py`: change the `$8E2D` fill count from 768 to 960.

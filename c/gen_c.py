@@ -161,7 +161,7 @@ def emit_fn(a, mn, mode, ln, val):
             b.append(f"u8 m = 0x{val:02X};")
         else:
             b.append(f"u16 ad = {addr_expr(mode, val)};")
-            b.append("u8 m = c->mem[ad];")
+            b.append("u8 m = rd8(c, ad);")
 
     if mn in ("LDA", "LDX", "LDY"):
         load_m()
@@ -170,7 +170,7 @@ def emit_fn(a, mn, mode, ln, val):
     elif mn in ("STA", "STX", "STY"):
         b.append(f"u16 ad = {addr_expr(mode, val)};")
         reg = {"STA": "a", "STX": "x", "STY": "y"}[mn]
-        b.append(f"c->mem[ad] = c->{reg};")
+        b.append(f"wr8(c, ad, c->{reg});")
     elif mn in ("AND", "ORA", "EOR"):
         load_m()
         op = {"AND": "&", "ORA": "|", "EOR": "^"}[mn]
@@ -194,15 +194,15 @@ def emit_fn(a, mn, mode, ln, val):
             b.append(f"{fn}(c, &c->a);")
         else:
             b.append(f"u16 ad = {addr_expr(mode, val)};")
-            b.append("u8 m = c->mem[ad];")
+            b.append("u8 m = rd8(c, ad);")
             b.append(f"{fn}(c, &m);")
-            b.append("c->mem[ad] = m;")
+            b.append("wr8(c, ad, m);")
     elif mn in ("INC", "DEC"):
         fn = "do_inc" if mn == "INC" else "do_dec"
         b.append(f"u16 ad = {addr_expr(mode, val)};")
-        b.append("u8 m = c->mem[ad];")
+        b.append("u8 m = rd8(c, ad);")
         b.append(f"{fn}(c, &m);")
-        b.append("c->mem[ad] = m;")
+        b.append("wr8(c, ad, m);")
     elif mn in ("INX", "INY", "DEX", "DEY"):
         reg = "x" if mn in ("INX", "DEX") else "y"
         op = "+" if mn in ("INX", "INY") else "-"
@@ -271,6 +271,21 @@ def emit_fn(a, mn, mode, ln, val):
 
 
 PRELUDE = r"""
+/* I/O hooks: when set, accesses to the PPU registers ($2000-$3FFF mirrors)
+ * and OAM DMA ($4014) are routed to the device model instead of plain memory.
+ * Other I/O (APU, controllers) stays in memory. NULL (the default) keeps the
+ * pure CPU/memory behaviour used by the differential test. */
+void (*g_io_write)(Cpu *, u16, u8) = 0;
+u8 (*g_io_read)(Cpu *, u16) = 0;
+#define IO_HOOKED(a) (((a) >= 0x2000 && (a) < 0x4000) || (a) == 0x4014)
+static u8 rd8(Cpu *c, u16 a) {
+    if (g_io_read && IO_HOOKED(a)) return g_io_read(c, a);
+    return c->mem[a];
+}
+static void wr8(Cpu *c, u16 a, u8 v) {
+    if (g_io_write && IO_HOOKED(a)) { g_io_write(c, a, v); return; }
+    c->mem[a] = v;
+}
 static void setnz(Cpu *c, u8 v) {
     if (v == 0) c->p |= F_Z; else c->p &= (u8)~F_Z;
     if (v & 0x80) c->p |= F_N; else c->p &= (u8)~F_N;

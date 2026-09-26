@@ -1,0 +1,33 @@
+You are verifying a new part of an LLM-made Super Mario Bros. decompilation: the
+NES PPU ("GPU") interface. Be concise and time-boxed; do not write large suites.
+
+Working dir: /home/wyn/LLMario/c  (this is the repository copy that will be pushed)
+Also available: ../out/smb.asm, ../out/prg.bin (extract with ../extract_rom.sh),
+../ppu.py, ../out/ppu_map.txt.
+
+Claim under test: the NES has no GPU instruction set; its PPU is fixed-function
+and programmed through registers $2000-$2007 and $4014. This work decompiles that
+command interface: ppu.h/ppu.c model the registers and log commands, pputrace.c
+runs the decompiled CPU through the model, and gen_c.py routes $2000-$401F
+accesses through g_io_write/g_io_read hooks.
+
+Verify, adversarially:
+1. Is the central claim correct? (The NES PPU has no instruction set.) Say so
+   plainly if it is wrong.
+2. Check ppu.c register semantics against documented NES behaviour: PPUADDR
+   two-write latch, PPUDATA auto-increment from PPUCTRL bit 2, buffered PPUDATA
+   read, palette/VRAM mirroring, PPUSTATUS read clearing the write toggle,
+   OAMDMA copying 256 bytes from CPU page, OAMADDR/OAMDATA. Report any
+   incorrect behaviour.
+3. Confirm the hook refactor did not change CPU semantics: build and run
+   ./build_c.sh and confirm the differential test still reports
+   `mismatches=0 gaps=0`.
+4. Sanity-check the trace: run `./out/pputrace ../out/prg.bin` (build it if
+   needed) and check the command stream against the ROM. In particular confirm
+   from ../out/smb.asm that the routine at $8E2D sets PPUADDR=$2400 and writes
+   768x $24 then 64x $00, and that the NMI at $8082 issues OAMDMA from $0200.
+   Flag any command in the trace that the disassembly does not justify.
+5. Note any limitation that makes the trace misleading.
+
+Report PASS or FAIL, key command output, any counterexample, and if FAIL the
+precise files/functions to fix.
